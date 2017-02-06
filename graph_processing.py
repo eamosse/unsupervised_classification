@@ -7,8 +7,11 @@ import operator
 from nltk import ngrams
 import copy
 import helper
+from tabulate import tabulate
 collection = "annotation_unsupervised"
 log = helper.enableLog()
+helper.disableLog(log)
+
 
 def hasNode(G, nn):
     nodes = G.nodes()
@@ -32,10 +35,7 @@ def hasNode(G, nn):
     return G, nn
 
 def addEdge( G, u, v, tweet):
-    G, u = hasNode(G,u)
-    G, v = hasNode(G,v)
-    #print(nodes)
-    if u == v or u in v or v in u:
+    if u == v or u in v or v in u or len(u)<2 or len(v) < 2:
         return
     if G.has_edge(u=u,v=v):
         G.get_edge_data(u,v)['weight'] =  G.get_edge_data(u,v)['weight'] + 1
@@ -85,7 +85,64 @@ def merge(vals):
                 vals[i] = (vals[i][0], vals[i][1]+vals[j][1])
     vals.sort(key=operator.itemgetter(1), reverse=True)
 
+
+def merge_nodes(G, nodes, new_node, attr_dict=None, **attr):
+    """
+    Merges the selected `nodes` of the graph G into one `new_node`,
+    meaning that all the edges that pointed to or from one of these
+    `nodes` will point to or from the `new_node`.
+    attr_dict and **attr are defined as in `G.add_node`.
+    """
+    print(new_node, nodes)
+
+    G.add_node(new_node, attr_dict, **attr)  # Add the 'merged' node
+
+    for n1, n2, data in G.edges(data=True):
+        # For all edges related to one of the nodes to merge,
+        # make an edge going to or coming from the `new gene`.
+        if n1 in nodes:
+            G.add_edge(new_node, n2, data)
+        elif n2 in nodes:
+            G.add_edge(n1, new_node, data)
+
+    for n in nodes:  # remove the merged nodes
+        G.remove_node(n)
+
 def clean(G):
+
+    """while (True):
+        nodes = G.nodes()
+        toMerge = {}
+        hasFound = False
+        for i, node in enumerate(nodes):
+            for k  in range(i+1, len(nodes)) :
+                nn = nodes[k]
+                if nn == node or len(nn.split()) == len(node.split()) or len(node.split()) > 2 or len(nn.split()) > 2:
+                    continue
+
+                if nn in node.split():
+                    if not node in toMerge:
+                        toMerge[node] = set()
+                    toMerge[node].add(nn)
+
+                if node in nn.split():
+                    if not nn in toMerge:
+                        toMerge[nn] = set()
+                    toMerge[nn].add(node)
+
+            for key in toMerge.keys():
+                merge_nodes(G, toMerge[key], key)
+
+            if toMerge:
+                hasFound = True
+                break
+
+        if not hasFound:
+            break
+    """
+
+    #log.debug(toMerge)
+
     rems = []
     for n, nbrs in G.adjacency_iter():
         for nbr, eattr in nbrs.items():
@@ -135,8 +192,12 @@ def hierar(G,t, func):
 def mSum(arr):
     return sum([t[1] for t in arr])
 seen = []
+final = []
+
+
 
 def process():
+    total = 0
     days = db.intervales(collection)
     initialGraph = nx.DiGraph()
     for day in days:
@@ -144,12 +205,12 @@ def process():
         if len(tweets) > 0:
             tweets = tweets[0]
         data = tweets['data']
+        total+= len(data)
 
         log.debug("###########################################")
         log.debug("Processing event on day {}".format(tweets['_id']['day']))
         log.debug("Tweets to process {}".format(len(data)))
         log.debug("###########################################")
-
 
         initialGraph.clear()
         log.debug("Building the graph")
@@ -157,12 +218,13 @@ def process():
             ann = AnnotationHelper.format(t)
             for a in ann:
                 for l in a['edges']:
+
                     addEdge(initialGraph, l[0], l[1], t['id'])
 
 
         log.debug("Retrievving subgraphs")
         GG = clean(initialGraph)
-
+        final = []
 
         log.debug("Processing subgraphs")
         for G in GG:
@@ -251,19 +313,34 @@ def process():
                                 #r['tweets'] = list(set(r['tweets']))
             seen.extend(res)
 
-            log.debug("==========EVENT==========")
-            for r in res:
-                print (r)
 
-            #print("LP",longest_path(G))
-            """edge_labels = dict([((u, v,), d['weight'])
-                                for u, v, d in G.edges(data=True)])
-            pos = nx.spring_layout(G)
-            nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
-            nx.draw_networkx(G, pos)
-            #nx.draw_networkx(G,pos=nx.spring_layout(G))#
-            #break
-        #plt.show()"""
+            #log.debug("==========EVENT==========")
+            for r in res:
+                text = "{} {} {}".format(' '.join([l[0] for l in r['pred']]) , r['center'][0] , ' '.join([l[0] for l in r['succ']]))
+                final.append([day,text,len(r['tweets'])])
+                #print (r)
+                # print("LP",longest_path(G))
+                """edge_labels = dict([((u, v,), d['weight'])
+                                    for u, v, d in G.edges(data=True)])
+                pos = nx.spring_layout(G)
+                nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+                nx.draw_networkx(G, pos)
+                #nx.draw_networkx(G,pos=nx.spring_layout(G))#
+                #break
+            #plt.show()"""
+
+        print()
+        print(tabulate(final, headers=["Day", "Keywords", "#tweets"]))
+
+    print("Tweets" , sum([len(r['tweets']) for r in seen]), "out of", total)
+    print("Detected Events", len(seen))
+
+
+        #break
+
+        #tabulate(final,)
+
+
 
 if __name__ == '__main__':
     #res = db.intervales("annotation_unsupervised")

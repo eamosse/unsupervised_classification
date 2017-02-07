@@ -1,11 +1,11 @@
 import csv
 from datetime import datetime, date
 from helper import  MongoHelper as db
-import locale
-import sys
+from dateutil import parser as pp
+
 import helper
 from optparse import OptionParser
-locale.setlocale(locale.LC_ALL, "fr_FR")
+#locale.setlocale(locale.LC_ALL, "en_EN")
 log = helper.enableLog()
 import os
 #sys.stdout = open('output.csv', "w",encoding="utf8")
@@ -42,32 +42,42 @@ def parseFile(folder):
                 d,m,y = _date.split()[0],_date.split()[1],_date.split()[2]
 
                 if str(m).lower().startswith('av') or str(m).lower().startswith('ap'):
-                    m = 'avril'
+                    m = 'April'
                 if str(m).lower().startswith('au') or str(m).lower().startswith('ao'):
-                    m = 'août'
+                    m = 'August'
                 if str(m).lower().startswith('juil') or str(m).lower().startswith('jul'):
-                    m = 'juil.'
+                    m = 'July'
                 if str(m).lower().startswith('juin') or str(m).lower().startswith('jun'):
-                    m = 'juil.'
+                    m = 'June'
                 if str(m).lower().startswith('s'):
-                    m = 'sept.'
+                    m = 'September'
                 if str(m).lower().startswith('o'):
-                    m = 'oct.'
+                    m = 'October'
                 if str(m).lower().startswith('n'):
-                    m = 'nov.'
+                    m = 'November'
                 if str(m).lower().startswith('d'):
-                    m = 'déc.'
+                    m = 'December'
+                if str(m).lower().startswith('f'):
+                    m = 'February'
+                if str(m).lower().startswith('ja'):
+                    m = 'January'
+                if str(m).lower().startswith('mar'):
+                    m = 'March'
+                if str(m).lower().startswith('may') or str(m).lower().startswith('mai'):
+                    m = 'May'
 
                 _date = '{} {} {}'.format(d,m,y)
 
                 if 'PM' in _hour:
                     _hour = _hour.replace('PM', '')
                     _h,_m = int(_hour.split(":")[0])+12, _hour.split(":")[1]
+                    if _h >= 24:
+                        _h = 00
                     _hour = '{}:{}'.format(_h,_m)
                 _hour = _hour.replace('AM', '').strip()
                 fDate = '{} {}'.format(_date,_hour)
-
-                dd = datetime.strptime(fDate,'%d %b %Y %H:%M')
+                print (fDate)
+                dd = pp.parse(fDate)#datetime.strptime(fDate,'%d %b %Y %H:%M')
                 d = {'text':s[8], 'tweet_id':s[6], 'date':dd}
                 if s[6] in ids:
                     d['event_id'] = ids[s[6]]
@@ -87,6 +97,10 @@ if __name__ == '__main__':
 
     loadIs(opts.relevant)
     parseFile(opts.folder)
+
+    fDate = '1 November 2012 0:09'
+    dd = pp.parse(fDate)
+    print(dd)
 
 
 

@@ -76,7 +76,6 @@ def parseFile(folder):
                     _hour = '{}:{}'.format(_h,_m)
                 _hour = _hour.replace('AM', '').strip()
                 fDate = '{} {}'.format(_date,_hour)
-                print (fDate)
                 dd = pp.parse(fDate)#datetime.strptime(fDate,'%d %b %Y %H:%M')
                 d = {'text':s[8], 'tweet_id':s[6], 'date':dd}
                 if s[6] in ids:

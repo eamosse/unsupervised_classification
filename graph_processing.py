@@ -6,9 +6,11 @@ from helper import MongoHelper as db, TextHelper, AnnotationHelper
 import operator
 from nltk import ngrams
 import copy
+import csv
 import helper
 from tabulate import tabulate
 from NetworkxHelper import  *
+from EventDefinition import *
 collection = "annotation_unsupervised"
 log = helper.enableLog()
 helper.disableLog(log)
@@ -38,6 +40,12 @@ def process():
     total = 0
     days = db.intervales(collection)
     initialGraph = nx.DiGraph()
+
+
+    myfile=open('events.csv', 'w')
+    wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+    wr.writerow(["Day", "Keywords", "#tweets", "Type"])
+
     for day in days:
         tweets = db.aggregateDate(collection, day)#[0]['data']
         if len(tweets) > 0:
@@ -158,15 +166,17 @@ def process():
 
             #log.debug("==========EVENT==========")
             for r in res:
-                text = "{} {} {}".format(' '.join([l[0] for l in r['pred']]) , r['center'][0] , ' '.join([l[0] for l in r['succ']]))
+                tweets = [t for t in r['tweets'].keys()]
+                text = generateDefinition(tweets) #"{} {} {}".format(' '.join([l[0] for l in r['pred']]) , r['center'][0] , ' '.join([l[0] for l in r['succ']]))
                 final.append([day,text,len(r['tweets']), 'Old' if 'exist' in r else 'New'])
-                print (r['tweets'].keys())
+                #print (r['tweets'].keys())
                 # print("LP",longest_path(G))
 
 
         print()
         print(tabulate(final, headers=["Day", "Keywords", "#tweets", "Type"]))
-        break
+        wr.writerow(final)
+        #break
 
     print("Tweets" , sum([len(r['tweets']) for r in seen]), "out of", total)
     print("Detected Events", len([ s for s in seen if 'exist' not in s]))

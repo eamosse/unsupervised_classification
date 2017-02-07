@@ -1,6 +1,7 @@
 import networkx as nx
 import operator
 import matplotlib.pyplot as plt
+import matplotlib
 
 def longest_path(G):
     return nx.dag_longest_path(G)
@@ -89,7 +90,8 @@ def topPred(node, G):
     if len(predecessors) == 0:
         return None
     predecessors = [(s, G.get_edge_data(s, node)['weight']) for s in predecessors]
-    merge(predecessors)
+    predecessors.sort(reverse=True)
+    #merge(predecessors)
     return predecessors[0]
 
 def topSucc(node, G):
@@ -97,24 +99,28 @@ def topSucc(node, G):
     if len(successors) == 0:
         return None
     successors = [(s, G.get_edge_data(node, s)['weight']) for s in successors]
-    merge(successors)
+    successors.sort(reverse=True)
+    #merge(successors)
     return successors[0]
 
-def hierar(G,t, func):
-    predecessors = []
+def hierar(G,t, func, limit=2):
+    predecessors = [t]
     current = t
     l = 0
-    while(l < 2):
+    while(l < limit):
         l+=1
         pred = func(current[0], G)
         if not pred or pred[0] in [p[0] for p in predecessors]:
             break
         predecessors.append(pred)
         current = pred
+    predecessors.remove(predecessors[0])
     return predecessors
 
 
 def display(G):
+    matplotlib.pyplot.figure(
+        figsize=(50.0, 50.0))  # The size of the figure is specified as (width, height) in inches
     edge_labels = dict([((u, v,), d['weight'])
                                         for u, v, d in G.edges(data=True)])
     pos = nx.spring_layout(G)
@@ -122,6 +128,7 @@ def display(G):
     nx.draw_networkx(G, pos)
     #nx.draw_networkx(G,pos=nx.spring_layout(G))#
     #break
+    plt.savefig("path.png")
     plt.show()
 
 def degrees(G):
@@ -129,3 +136,16 @@ def degrees(G):
     degree = [d for d in degree.items() if d[1] > 2]
     degree.sort(key=operator.itemgetter(1), reverse=True)
     return degree
+
+def removeEdgeWithEight(G,eight=2):
+    toRems = []
+    #G = nx.DiGraph()
+    for n, nbrs in G.adjacency_iter():
+        for nbr, eattr in nbrs.items():
+            data = eattr['weight']
+            if data <=eight:
+                toRems.append((n,nbr))
+                #print('(%s, %s, %s)' % (n, nbr, data))
+    for edge in toRems:
+        G.remove_edge(edge[0],edge[1])
+    return clean(G)

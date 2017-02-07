@@ -33,11 +33,15 @@ def hasNode(G, nn):
             G = nx.relabel_nodes(G, vals)  # nodes 1..26
             #return G, nn
     return G, nn
-
+ignored = []
+added = []
 def addEdge( G, u, v, tweet):
     if u == v or u in v or v in u or len(u)<2 or len(v) < 2:
+        ignored.append(tweet)
         return
-    if G.has_edge(u=u,v=v):
+    if tweet not in added:
+        added.append(tweet)
+    if G.has_edge(u,v):
         G.get_edge_data(u,v)['weight'] =  G.get_edge_data(u,v)['weight'] + 1
         if tweet not in G.get_edge_data(u, v)['id']:
             G.get_edge_data(u, v)['id'].append(tweet)
@@ -109,48 +113,15 @@ def merge_nodes(G, nodes, new_node, attr_dict=None, **attr):
         G.remove_node(n)
 
 def clean(G):
-
-    """while (True):
-        nodes = G.nodes()
-        toMerge = {}
-        hasFound = False
-        for i, node in enumerate(nodes):
-            for k  in range(i+1, len(nodes)) :
-                nn = nodes[k]
-                if nn == node or len(nn.split()) == len(node.split()) or len(node.split()) > 2 or len(nn.split()) > 2:
-                    continue
-
-                if nn in node.split():
-                    if not node in toMerge:
-                        toMerge[node] = set()
-                    toMerge[node].add(nn)
-
-                if node in nn.split():
-                    if not nn in toMerge:
-                        toMerge[nn] = set()
-                    toMerge[nn].add(node)
-
-            for key in toMerge.keys():
-                merge_nodes(G, toMerge[key], key)
-
-            if toMerge:
-                hasFound = True
-                break
-
-        if not hasFound:
-            break
-    """
-
-    #log.debug(toMerge)
-
-    rems = []
+    """rems = []
     for n, nbrs in G.adjacency_iter():
         for nbr, eattr in nbrs.items():
             data = eattr['weight']
             if data <= 1:
                 rems.append((n,nbr))
 
-    G.remove_edges_from(rems)
+    G.remove_edges_from(rems)"""
+
 
     if G and not nx.is_strongly_connected(G):
         G = sorted(nx.strongly_connected_component_subgraphs(G), key = len, reverse = True)
@@ -177,23 +148,23 @@ def topSucc(node, G):
 
 def hierar(G,t, func):
     predecessors = []
-
-    pred1 = func(t[0], G)
-    if not pred1:
-        return  None
-    predecessors.append(pred1)
-    pred2 = func(pred1[0], G)
-    if pred2 and pred2[0] != t[0]:
-        predecessors.append(pred2)
-        pred3 = func(pred2[0], G)
-        if pred3 and pred3[0] != t[0] and pred2[0] != pred3[0]:
-            predecessors.append(pred3)
+    current = t
+    l = 0
+    while(l < 2):
+        l+=1
+        pred = func(current[0], G)
+        if not pred or pred[0] in [p[0] for p in predecessors]:
+            break
+        predecessors.append(pred)
+        current = pred
     return predecessors
+
+
 def mSum(arr):
     return sum([t[1] for t in arr])
+
 seen = []
 final = []
-
 
 
 def process():
@@ -216,11 +187,11 @@ def process():
         log.debug("Building the graph")
         for t in data:
             ann = AnnotationHelper.format(t)
+            if len(ann) == 0:
+                ignored.append(t['id'])
             for a in ann:
                 for l in a['edges']:
-
                     addEdge(initialGraph, l[0], l[1], t['id'])
-
 
         log.debug("Retrievving subgraphs")
         GG = clean(initialGraph)
@@ -246,12 +217,12 @@ def process():
                     continue
                 val = {'center' : t, 'pound' : t[1], 'tweets' : []}
                 if predecessors:
-                    pred = [t for t in predecessors[0:3]]
+                    pred = [t for t in predecessors[0:2]]
                     val['pred'] = pred
                     val['pound'] += sum([t[1] for t in pred])
                 #val.append((*t,'center'))
                 if successors:
-                    suc = [t for t in successors[0:3]]
+                    suc = [t for t in successors[0:2]]
                     val['succ'] = suc
                     val['pound'] += sum([t[1] for t in suc])
 
@@ -266,7 +237,7 @@ def process():
             for i,elem in enumerate(res):
                 for s in seen:
                     if elem['center'][0] in s['center'][0]:
-                        elem['ignore'] = True
+                        elem['exist'] = True
                         #s['tweets'].extend(elem['tweets'])
 
                 for j,elem2 in enumerate(res):
@@ -275,6 +246,9 @@ def process():
 
                     if elem['center'][0] in [t[0] for t in elem2['pred']+elem2['succ']]:
                         elem2['ignore'] = True
+                        if 'exist' in elem2:
+                            elem['exist'] = True
+
                         elem['tweets'].extend(elem2['tweets'])
                         continue
 
@@ -283,9 +257,13 @@ def process():
                             if elem['pound'] >= elem2['pound']:
                                 elem2['ignore'] = True
                                 elem['tweets'].extend(elem2['tweets'])
+                                if 'exist' in elem2:
+                                    elem['exist'] = True
                             else:
                                 elem['ignore'] = True
                                 elem2['tweets'].extend(elem['tweets'])
+                                if 'exist' in elem:
+                                    elem2['exist'] = True
 
             res = [elem for elem in res if 'ignore' not in elem]
             log.debug("Pruning detected events")
@@ -317,7 +295,7 @@ def process():
             #log.debug("==========EVENT==========")
             for r in res:
                 text = "{} {} {}".format(' '.join([l[0] for l in r['pred']]) , r['center'][0] , ' '.join([l[0] for l in r['succ']]))
-                final.append([day,text,len(r['tweets'])])
+                final.append([day,text,len(r['tweets']), 'Old' if 'exist' in r else 'New'])
                 #print (r)
                 # print("LP",longest_path(G))
                 """edge_labels = dict([((u, v,), d['weight'])
@@ -330,10 +308,13 @@ def process():
             #plt.show()"""
 
         print()
-        print(tabulate(final, headers=["Day", "Keywords", "#tweets"]))
+        print(tabulate(final, headers=["Day", "Keywords", "#tweets", "Type"]))
+        #break
 
     print("Tweets" , sum([len(r['tweets']) for r in seen]), "out of", total)
-    print("Detected Events", len(seen))
+    print("Detected Events", len([ s for s in seen if 'exist' not in s]))
+    print("Igndored", len(ignored))
+    print("Added", len(added))
 
 
         #break

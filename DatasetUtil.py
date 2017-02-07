@@ -30,12 +30,14 @@ def parseFile(folder):
         with open(folder+'/'+f, 'r', encoding="utf8") as csvfile:
             spamreader = csv.reader(csvfile, delimiter='\t')
             for s in spamreader:
-                if '200	false' in s[8]:
+                if '200	false' in s[8] or str(s[0]).startswith('400'):
                     ignored+=1
                     continue
                 s[9] = s[9].replace('avr.', 'avril')
                 s[9] = s[9].replace('Oct', 'oct.')
                 s[9] = s[9].replace('Aug', 'août')
+
+
 
                 #7:01 - 9 oct. 2012
                 print(s[9])

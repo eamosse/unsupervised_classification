@@ -38,6 +38,7 @@ def parseFile(folder):
                 s[9] = s[9].replace('Aug', 'août')
 
                 #7:01 - 9 oct. 2012
+                print(s[9])
                 _date, _hour = s[9].split(' - ')[1], s[9].split(' - ')[0]
                 d,m,y = _date.split()[0],_date.split()[1],_date.split()[2]
 

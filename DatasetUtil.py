@@ -35,6 +35,7 @@ def parseFile(folder):
                     continue
                 s[9] = s[9].replace('avr.', 'avril')
                 s[9] = s[9].replace('Oct', 'oct.')
+                s[9] = s[9].replace('Aug', 'août')
                 #7:01 - 9 oct. 2012
                 _date, _hour = s[9].split(' - ')[1], s[9].split(' - ')[0]
                 if 'PM' in _hour:

@@ -58,8 +58,8 @@ def parseFile(folder):
 
 if __name__ == '__main__':
     parser = OptionParser('''%prog -o ontology -t type -f force ''')
-    parser.add_option('-o', '--relevant', dest='relevant', default="relevant_id.tsv")
-    parser.add_option('-t', '--folder', dest='folder', default="part")
+    parser.add_option('-r', '--relevant', dest='relevant', default="relevant_id.tsv")
+    parser.add_option('-f', '--folder', dest='folder', default="part")
     opts, args = parser.parse_args()
 
     loadIs(opts.relevant)

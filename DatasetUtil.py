@@ -36,8 +36,30 @@ def parseFile(folder):
                 s[9] = s[9].replace('avr.', 'avril')
                 s[9] = s[9].replace('Oct', 'oct.')
                 s[9] = s[9].replace('Aug', 'août')
+
                 #7:01 - 9 oct. 2012
                 _date, _hour = s[9].split(' - ')[1], s[9].split(' - ')[0]
+                d,m,y = _date.split()[0],_date.split()[1],_date.split()[2]
+
+                if str(m).lower().startswith('av') or str(m).lower().startswith('ap'):
+                    m = 'avril'
+                if str(m).lower().startswith('au') or str(m).lower().startswith('ao'):
+                    m = 'août'
+                if str(m).lower().startswith('juil') or str(m).lower().startswith('jul'):
+                    m = 'juil.'
+                if str(m).lower().startswith('juin') or str(m).lower().startswith('jun'):
+                    m = 'juil.'
+                if str(m).lower().startswith('s'):
+                    m = 'sept.'
+                if str(m).lower().startswith('o'):
+                    m = 'oct.'
+                if str(m).lower().startswith('n'):
+                    m = 'nov.'
+                if str(m).lower().startswith('d'):
+                    m = 'déc.'
+
+                _date = '{} {} {}'.format(d,m,y)
+
                 if 'PM' in _hour:
                     _hour = _hour.replace('PM', '')
                     _h,_m = int(_hour.split(":")[0])+12, _hour.split(":")[1]
@@ -65,3 +87,6 @@ if __name__ == '__main__':
 
     loadIs(opts.relevant)
     parseFile(opts.folder)
+
+
+

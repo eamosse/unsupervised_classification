@@ -296,7 +296,7 @@ def process():
             for r in res:
                 text = "{} {} {}".format(' '.join([l[0] for l in r['pred']]) , r['center'][0] , ' '.join([l[0] for l in r['succ']]))
                 final.append([day,text,len(r['tweets']), 'Old' if 'exist' in r else 'New'])
-                #print (r)
+                print (r['tweets'].keys())
                 # print("LP",longest_path(G))
                 """edge_labels = dict([((u, v,), d['weight'])
                                     for u, v, d in G.edges(data=True)])
@@ -309,7 +309,7 @@ def process():
 
         print()
         print(tabulate(final, headers=["Day", "Keywords", "#tweets", "Type"]))
-        #break
+        break
 
     print("Tweets" , sum([len(r['tweets']) for r in seen]), "out of", total)
     print("Detected Events", len([ s for s in seen if 'exist' not in s]))

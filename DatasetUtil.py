@@ -32,7 +32,6 @@ def parseFile(folder):
             for s in spamreader:
                 if '200	false' in s[8] or str(s[0]).startswith('400') or '-' not in s[9]:
                     ignored+=1
-                    print('ignoring', s)
                     continue
                 s[9] = s[9].replace('avr.', 'avril')
                 s[9] = s[9].replace('Oct', 'oct.')

@@ -81,11 +81,12 @@ def parseFile(folder):
                 if s[6] in ids:
                     d['event_id'] = ids[s[6]]
                 data.append(d)
-
+        os.remove(folder+'/'+f)
         log.debug("Inserting tweets in the database")
         print("Inserted {} tweets".format(len(data)))
         print("Ignored {} tweets".format(ignored))
-        db.insert("tweets", data)
+        if len(data) > 0:
+            db.insert("tweets", data)
 
 
 if __name__ == '__main__':

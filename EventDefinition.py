@@ -24,7 +24,8 @@ def generateDefinition(ids):
         p.extend([t[0] for t in succ])
         return ' '.join(p)
     else:
-        display(G)
+        return tweets[0]['text']
+        #display(G)
 
 if __name__ == '__main__':
     ids = ['255888992740995073', '255835792092561409', '255920223423696896', '255880431927443456', '255849486423842817']

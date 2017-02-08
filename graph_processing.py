@@ -149,6 +149,7 @@ def process():
                 r['tweets'] = f
 
             for i, r in enumerate(res):
+                r['day'] = day
                 for j,k in enumerate(res):
                     tweets = copy.deepcopy(r['tweets'])
                     if i == j :
@@ -159,10 +160,7 @@ def process():
                                 del k['tweets'][t]
                             else:
                                 del r['tweets'][t]
-
-                                #r['tweets'] = list(set(r['tweets']))
             seen.extend(res)
-
 
             #log.debug("==========EVENT==========")
             for r in res:
@@ -175,7 +173,8 @@ def process():
 
         print()
         print(tabulate(final, headers=["Day", "Keywords", "#tweets", "Type"]))
-        wr.writerow(final)
+        for f in final:
+            wr.writerow(f)
         #break
 
     print("Tweets" , sum([len(r['tweets']) for r in seen]), "out of", total)

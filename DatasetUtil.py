@@ -10,7 +10,7 @@ log = helper.enableLog()
 import os
 #sys.stdout = open('output.csv', "w",encoding="utf8")
 
-db.connect("event_2012")
+db.connect("tweets_dataset")
 ids = {}
 
 def loadIs(file):
@@ -21,6 +21,16 @@ def loadIs(file):
         for t in reader:
             ids[t[1]] = t[0]
     return ids
+
+
+def saveRelevent(file):
+    with open(file, encoding="utf8") as csvfile:
+        reader = csv.reader(csvfile, delimiter='\t')
+        for t in reader:
+            event = db.find("category", query={"event_id":int(t[0])})
+            if len(event) >0 :
+                del event[0]['_id']
+                db.update("annotation_unsupervised",condition={"id":t[1]}, value=event[0])
 
 def parseFile(folder):
     for f in os.listdir(folder):
@@ -95,12 +105,8 @@ if __name__ == '__main__':
     parser.add_option('-f', '--folder', dest='folder', default="part")
     opts, args = parser.parse_args()
 
-    loadIs(opts.relevant)
-    parseFile(opts.folder)
-
-    fDate = '1 November 2012 0:09'
-    dd = pp.parse(fDate)
-    print(dd)
+    saveRelevent(opts.relevant)
+    #parseFile(opts.folder)
 
 
 

@@ -49,8 +49,6 @@ def top(G,node,ids,orient=-1):
 
 
 def generateDefinition(ids):
-    print(ids)
-
     tweets = db.find(collection="all_tweets", query={'id':{'$in':ids}})
     G = nx.DiGraph()
     for tweet in tweets:

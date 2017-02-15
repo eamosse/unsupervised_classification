@@ -236,7 +236,7 @@ def process():
                             elem['event'] = elem2['event']
                         break
 
-        res = [elem for elem in res if 'ignore' not in elem or len(elem['center']) > 20]
+        res = [elem for elem in res if 'ignore' not in elem or len(elem['center']) > 20 or len(elem['center']) < 3]
         log.debug("Pruning detected events")
 
         for i, r in enumerate(res):

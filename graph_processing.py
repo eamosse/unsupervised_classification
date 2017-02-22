@@ -146,7 +146,7 @@ def process(opts):
         for i,elem in enumerate(res):
             if 'exist' in elem or 'ignore' in elem:
                 continue
-            entities1 = initialGraph.neighbors(elem['center'])
+            entities1 = initialGraph.neighbors(elem['center'][0])
             exist = False
 
             count = 0
@@ -170,7 +170,7 @@ def process(opts):
 
             for j in range(i+1, len(res)):
                 elem2 = res[j]
-                entities2  = initialGraph.neighbors(elem2['center'])
+                entities2  = initialGraph.neighbors(elem2['center'][0])
                 exist = False
                 for e1 in entities1:
                     for e2 in entities2:

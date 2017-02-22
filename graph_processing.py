@@ -63,7 +63,7 @@ def process(opts):
     days = db.intervales(collection)
     initialGraph = nx.DiGraph()
 
-    myfile=open('results_{}_{}_{}_{}_{}.csv'.format(ne,tmin,min(divergence), max(divergence), min_weight), 'w')
+    myfile=open('results_{}_{}_{}_{}_{}_{}.csv'.format(ne,tmin,min(divergence), max(divergence), min_weight,smin), 'w')
     wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
     wr.writerow(["GT", "#tweets", "Detected"])
 

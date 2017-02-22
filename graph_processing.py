@@ -134,7 +134,7 @@ def process(opts):
             # remove the pred and the succ in the list
             degree = [d for d in degree if d[0] not in vals]
 
-            val = {'keys' : vals, 'center' : t[0], 'tweets' : []}
+            val = {'keys' : vals, 'center' : t, 'tweets' : []}
 
             for d in ngrams(vals,2):
                 dd = initialGraph.get_edge_data(d[0], d[1])

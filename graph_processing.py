@@ -1,17 +1,10 @@
-from audioop import reverse
-
-import networkx as nx
-import matplotlib.pyplot as plt
-from helper import MongoHelper as db, TextHelper, AnnotationHelper
-import operator
-from nltk import ngrams
-import copy
 import csv
 import helper
 from tabulate import tabulate
 from EventDefinition import *
 import random
 import utils
+from Score import *
 collection = "annotation_unsupervised"
 log = helper.enableLog()
 #helper.disableLog(log)
@@ -28,12 +21,14 @@ db.connect("tweets_dataset")
 visited = set()
 
 
-def dirtyTweets():
+def dirtyTweets(nb):
     global non_events
     non_events = db.find("non_event")
     non_events = [event for event in non_events if not event['text'].startswith('rt')]
     random.shuffle(non_events)
-    non_events = non_events[0:10000]
+    random.shuffle(non_events)
+    random.shuffle(non_events)
+    return non_events[0:nb]
 
 
 def mSum(arr):
@@ -55,38 +50,40 @@ def getEntityNodes(nodes,elem):
 
 fOld = open('old.txt','w')
 
+ne = 10000
+tmin = 30
+divergence = [3,20]
+min_weight = 1
+
 def process():
     total = 0
-    gts = utils.gtEvents()
+    gts = utils.gtEvents(limit=tmin)
     days = db.intervales(collection)
     initialGraph = nx.DiGraph()
 
-    myfile=open('results.csv', 'w')
+    myfile=open('results_{}_{}_{}_{}_{}.csv'.format(ne,tmin,min(divergence), max(divergence), min_weight), 'w')
     wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
     wr.writerow(["GT", "#tweets", "Detected"])
 
     for day in days:
-        fNew = open('{}.txt'.format(day), 'w')
-        ##dirtyTweets()
-        ids = db.find("aggregate", query={"_id.day":day})[0]['data']
-        ids = list(set([d['id'] for d in ids]))
-        data = db.find("all_tweets",query={'id':{"$in":ids}})
-        #print(data)
-
-        #tweets = db.aggregateDate("aggregate", day)#[0]['data']
-
-        #non_events = db.aggregateDate("non_event", day)  # [0]['data']
-
-        #if len(tweets) > 0:
-            #tweets = tweets[0]
-        #data = tweets['data'] + non_events
-        total+= len(data)
+        #fNew = open('{}.txt'.format(day), 'w')
+        # get the tweets published dring this day
+        tweets = db.aggregateDate(collection=collection, day=day)
+        if tweets:
+            tweets = tweets[0]['data']
+        else:
+            continue
+        # randomly select nb non event tweets to simulate a real scenario
+        non_events = dirtyTweets(ne)
+        # merge the event and non_event tweets
+        data = tweets + non_events
         random.shuffle(data)
+        total += len(data)
 
-        fNew.write("###########################################")
+        """fNew.write("###########################################")
         fNew.write("Processing event on day {}".format(day))
         fNew.write("Tweets to process {}".format(len(data)))
-        fNew.write("###########################################")
+        fNew.write("###########################################")"""
 
         initialGraph.clear()
         log.debug("Building the graph")
@@ -107,29 +104,25 @@ def process():
         #Rename similar nodes
         log.debug("Cleaning the graph")
         mergeNodes(initialGraph)
-        clean(initialGraph)
+        clean(initialGraph, min_weight=min_weight)
         news = []
         olds = []
         res = []
         _nodes = initialGraph.nodes(data=True)
-        nodes = [n[0] for n in _nodes if len(n[0]) > 1 or TextHelper.isInWordNet(n[0])]
+        #nodes = [n[0] for n in _nodes]
         #print("In wordnet",nn)
-        #nodes = [node[0] for node in _nodes if 'entity' in node[1] and node[1]['entity']]
+        nodes = [node[0] for node in _nodes if 'entity' in node[1] and node[1]['entity']]
 
-        degree = degrees(initialGraph, nbunch=nodes)
-        #degree = [dg for dg in degree if dg[1]>15]
+        #degree = degrees(initialGraph, nbunch=nodes)
+        degree = getScore(initialGraph)
+
+        degree = [dg for dg in degree if dg[1]>0.15 and dg[0] in nodes]
 
         if len(degree) == 0:
             continue
 
-        """edges = initialGraph.edges(nbunch=nodes, data=True)
-        for e in edges:
-            print(e)"""
 
         for t in degree:
-            """predecessors = hierar(initialGraph,t,topPred, limit=1)
-            predecessors.reverse()
-            successors = hierar(initialGraph,t,topSucc,limit=1)"""
 
             predecessors = highestPred( initialGraph,t[0])
             successors = highestPred(initialGraph,t[0],direct=1)
@@ -176,33 +169,11 @@ def process():
                     exist = True
                     break
 
-                """ng = ngrams([g[0] for g in s['pred'][0] + s['center'][0:1] + s['succ'][0]], 2)
-                #print([n for n in ng])
-                for n in ng:
-                    if n in ngg:
-                        exist = True
-                        break
-
-                equal,edge = 0,0
-                for ent1 in getEntityNodes(nodes, s):
-                    for ent2 in entities1 :
-                        if ent1 == ent2:
-                            equal+=1
-                            #continue
-                        if initialGraph.has_edge(ent1, ent2) or initialGraph.has_edge(ent2, ent1):
-                            edge +=1
-                            exist = True
-                            break
-
-                    if exist:
-                        break
-                """
             if exist:
                 elem['exist'] = True
                 elem['ignore'] = True
                 elem['event'] = s['event']
                 #break
-
 
             #s['tweets'].extend(elem['tweets'])
                     #s['tweets'].extend(elem['tweets'])
@@ -236,7 +207,7 @@ def process():
                             elem['event'] = elem2['event']
                         break
 
-        res = [elem for elem in res if 'ignore' not in elem or len(elem['center']) > 20 or len(elem['center']) < 3]
+        res = [elem for elem in res if 'ignore' not in elem or len(elem['center']) > max(divergence) or len(elem['center']) < min(divergence)]
         log.debug("Pruning detected events")
 
         for i, r in enumerate(res):
@@ -256,7 +227,6 @@ def process():
         events = [e for e in res if 'ignore' not in e]
         # log.debug("==========EVENT==========")
 
-
         for i,r in enumerate(events):
             """tweets = [t for t in r['tweets'].keys()]
             if not tweets or len(tweets) < 3:
@@ -268,35 +238,42 @@ def process():
 
             #print(day, tweets)
             text = generateDefinition(tweets) #
-            #text =  "{} -{}- {}".format('>'.join([l[0] for l in r['pred'][0][0:3]]) , r['center'][0][0] , '<'.join([l[0] for l in r['succ'][0][0:3]]))
-            #text = "{} [{}] {}".format(' '.join([l[0] for l in r['pred']]) , r['center'][0] , ' '.join([l[0] for l in r['succ']]))
             event = AnnotationHelper.groundTruthEvent(tweets)
             if not 'exist' in r:
-                news.append([day,text,event[0] if event else "-1", len(r['tweets']),r['pound'], len(r['pred']),len(r['succ']), r['center'], "Yes" if r['center'][0] in nodes else 'No'])
+                if event :
+                    for e in event:
+                        news.append([day,text,e, len(r['tweets']),r['pound'], len(r['pred']),len(r['succ']), r['center'], "Yes" if r['center'][0] in nodes else 'No'])
+                        for g in gts:
+                            if int(g[0]) == int(e):
+                                g.append(e)
+                                break
+                else:
+                    news.append(
+                        [day, text, "-1", len(r['tweets']), r['pound'], len(r['pred']), len(r['succ']),
+                         r['center'], "Yes" if r['center'][0] in nodes else 'No'])
+                    gts.append(['-1'])
             else:
                 olds.append([day,text,r['event'], len(tweets)])
 
             r['event'] = event[0] if event else -1
 
-            if r['event'] == -1:
+
+            """
+             if r['event'] == -1:
                 gts.append([r['event']])
             else:
                 for g in gts:
                     if int(g[0]) == int(r['event']):
                         g.append(r['event'])
                         break
-
+            """
             seen.append(r)
 
-                #print (r['tweets'].keys())
-                # print("LP",longest_path(G))
-            #seen.extend(res)
-            #print(seen)
         print("New Events")
         tt = tabulate(news, headers=["Day", "Keywords", 'Ground Truth',"#tweets", "pound", "pred","succ", "CALC", "center", "ENT"])
         print(tt)
-        fNew.write(tt)
-        fNew.close()
+        #fNew.write(tt)
+        #fNew.close()
         """if olds:
             print("Paseed Events")
             tt = tabulate(olds, headers=["Day", "Keywords", 'Ground Truth',"#tweets"])
@@ -315,12 +292,8 @@ def process():
     #fNew.close()
     #Computing the evaluation
     utils.evaluation()
-
-
         #break
-
         #tabulate(final,)
-
 
 
 if __name__ == '__main__':

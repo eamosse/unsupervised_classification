@@ -1,7 +1,9 @@
 from helper import MongoHelper as db, AnnotationHelper
 from NetworkxHelper import *
 import operator
+import random
 
+from networkx.algorithms.flow import shortest_augmenting_path
 db.connect("tweets_dataset")
 
 
@@ -47,9 +49,18 @@ def top(G,node,ids,orient=-1):
         res.reverse()
     return res,ids
 
+def dirtyTweets(nb):
+    non_events = db.find("non_event")
+    non_events = [event for event in non_events if not event['text'].startswith('rt')]
+    random.shuffle(non_events)
+    random.shuffle(non_events)
+    random.shuffle(non_events)
+    return non_events[0:nb]
 
 def generateDefinition(ids):
     tweets = db.find(collection="all_tweets", query={'id':{'$in':ids}})
+    random.shuffle(tweets)
+    tweets = tweets[0:15]
     G = nx.DiGraph()
     for tweet in tweets:
         edges = AnnotationHelper.getNodes(text=tweet['text'])
@@ -65,20 +76,50 @@ def generateDefinition(ids):
     else:
         return tweets[0]['text']
 
+def flow_func(G,node1,node2):
+    return G.get_edge_data(node1, node2)['weight']
 
 if __name__ == '__main__':
-    ids = ['255917019113873409', '255914464761749504', '255902057825976320', '255917010582650882', '255914464585588737', '255917681709035520', '255917396328603648', '255914464661078017', '255917820326588417', '255917715464785920', '255917631478054912', '255916994069676033', '255908026626752512', '255898102530207744', '255916993721556993', '255917300090302464', '255914464854032385', '255914464598167552', '255914464895963136', '255914464908554240', '255917790844833792', '255917010582650882', '255917396328603648', '255917820326588417', '255917631478054912', '255917715464785920', '255917300090302464', '255916994069676033', '255917790844833792']
-    tweets = db.find(collection="all_tweets", limit=200)
-    G = nx.DiGraph()
+    tweets = db.find(collection="annotation_unsupervised", query={'event_id':383}) + dirtyTweets(10000)
+    texts = ' ' .join(t['text'] for t in tweets)
+    from summa.summarizer import summarize
+    summary = summarize(texts)
+    print(summary)
+
+    """G = nx.DiGraph()
     for tweet in tweets:
         ann = AnnotationHelper.format(tweet)
         for a in ann:
             for l in a['edges']:
                 addEdge(G, l[0], l[1], tweet['id'], l[2])
-    deg = degrees(G)
+    #deg = degrees(G)
+    pos = createLayout(G)
+    sub = []
+    G = clean(G)
+    display(G, pos=pos)"""
+    """pos = createLayout(G)
+    nx.draw(G, pos)
+    labels = nx.get_edge_attributes(G, 'weight')
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
+    #edge_labels = nx.draw_networkx_edge_labels(G, pos=nx.spring_layout(G))
+    plt.show()"""
 
-    for d in deg:
+    """for d in deg:
         pred = highestPred(G, d[0])
         succ = highestPred(G, d[0],direct=1)
         print(pred, succ)
-    #display(G)
+
+
+    for i in range(5):
+        G = G if not sub else sub
+        sub = []
+        for g in G:
+            nodes = nx.minimum_node_cut(g)
+            for n in nodes:
+                print(n)
+                g.remove_node(n)
+            sb = subgraphs(g)
+            print(sb)
+            sub.extend(sb)
+        G = sub
+    display(G,pos=pos)"""

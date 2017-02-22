@@ -5,6 +5,8 @@ import matplotlib
 from helper import TextHelper
 from nltk import ngrams
 import random
+from itertools import cycle
+
 try:
     import pygraphviz
     from networkx.drawing.nx_agraph import graphviz_layout
@@ -74,17 +76,6 @@ def mergeNodes(initialGraph):
         for n in ng:
             if initialGraph.has_edge(n[0], n[1]) or initialGraph.has_edge(n[1], n[0]):
                 merge_nodes(initialGraph, n, node[0])
-    #rename similar nodes, similarity is computed with Levinstein distance
-    """nodes = initialGraph.nodes(data=True)
-    for i,node1 in enumerate(nodes):
-        toRename = set()
-        for j in range(i+1,len(nodes)):
-            node2 = nodes[j]
-            if TextHelper.similarity(node1[0], node2[0])==1:
-                toRename.add(node2[0])
-        if toRename:
-            print("To rename", node1[0], toRename)
-            merge_nodes(initialGraph,toRename,node1[0])"""
 
 
 def merge(vals):
@@ -98,19 +89,20 @@ def merge(vals):
                 vals[i] = (vals[i][0], vals[i][1]+vals[j][1])
     vals.sort(key=operator.itemgetter(1), reverse=True)
 
-def clean(G, min_weight=2):
+def clean(G, min_weight=3):
     toRem= []
     for n, nbrs in G.adjacency_iter():
         for nbr, eattr in nbrs.items():
             data = eattr['weight']
-            if data < 2:
+            if data < min_weight:
                 toRem.append((n,nbr))
-
     G.remove_edges_from(toRem)
+    graphs = [G]
     if G and not nx.is_strongly_connected(G):
-        G = sorted(nx.strongly_connected_component_subgraphs(G), key = len, reverse = True)
+        graphs = sorted(nx.strongly_connected_component_subgraphs(G), key = len, reverse = True)
 
-    return G
+    graphs = [g for g in graphs if nx.number_of_nodes(g) > 1]
+    return graphs
 
 def merge_nodes(G, nodes, new_node):
     """
@@ -146,12 +138,10 @@ def topPred(node, G):
 
 
 def highestPred(G, node, direct=-1):
-    #G = nx.DiGraph()
     nodes = G.predecessors(node) if direct ==-1 else G.successors(node)
     edges = []
     for p in nodes:
         weight = G.get_edge_data(p, node) if direct==-1 else G.get_edge_data(node, p)
-        #ed = [(node,p,edge['weight'])]
         _nodes = G.predecessors(p) if direct == -1 else G.successors(p)
         for pp in _nodes:
             ed = G.get_edge_data(pp, p) if direct == -1 else G.get_edge_data(p, pp)
@@ -171,8 +161,6 @@ def topSucc(node, G):
         return None
     successors = [(s, G.get_edge_data(node, s)['weight']) for s in successors]
     successors.sort(key=operator.itemgetter(1), reverse=True)
-    #successors.sort(reverse=True)
-    #merge(successors)
     return successors[0]
 
 def hierar(G,t, func, limit=2):
@@ -193,32 +181,37 @@ def hierar(G,t, func, limit=2):
     predecessors.remove(predecessors[0])
     return predecessors
 
+def subgraphs(G):
+    graphs = []
+    for g in nx.strongly_connected_component_subgraphs(G):
+        #remove isolated nodes
+        if nx.number_of_nodes(g) < 2:
+            continue
+        graphs.append(g)
+    return graphs
 
-def display(G, name='test'):
+def createLayout(G):
+    return graphviz_layout(G, prog="neato")
+colors = cycle(['blue', 'green', 'brown', 'black','navy', 'turquoise', 'darkorange', 'cornflowerblue', 'teal'])
 
-    """matplotlib.pyplot.figure(
-        figsize=(25.0, 25.0))  # The size of the figure is specified as (width, height) in inches
-    edge_labels = dict([((u, v,), d['weight'])
-                                        for u, v, d in G.edges(data=True)])
-    pos = nx.spring_layout(G)
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
-    nx.draw_networkx(G, pos)
-    #nx.draw_networkx(G,pos=nx.spring_layout(G))#
-    #break
-    plt.savefig(name+".png")
-    plt.show()"""
+def display(G, pos):
     plt.figure(1, figsize=(20, 20))
+    if not type(G) is list:
+        G = [G]
     # layout graphs with positions using graphviz neato
-    pos = graphviz_layout(G, prog="neato")
-    c = [random.random()] * nx.number_of_nodes(G)  # random color...
-    nx.draw(G,
-            pos,
-            node_size=80,
-            node_color=c,
-            vmin=1.0,
-            vmax=3.0,
-            with_labels=True
-            )
+    for i, c in zip(range(len(G)), colors):
+        g = G[i]
+        nx.draw(g,
+                pos,
+                node_size=80,
+                node_color=c,
+                vmin=1.0,
+                vmax=3.0,
+                with_labels=True
+                )
+
+        labels = nx.get_edge_attributes(g, 'weight')
+        nx.draw_networkx_edge_labels(g, pos, edge_labels=labels)
 
     plt.show()
 
@@ -242,3 +235,129 @@ def removeEdgeWithEight(G,eight=2):
     for edge in toRems:
         G.remove_edge(edge[0],edge[1])
     return clean(G)
+
+def getEntityNodes(nodes,elem):
+    res = []
+    p = []
+    for i in range(len(elem['center'])):
+        p.extend(elem['pred'][i] + [elem['center'][i]] + elem['succ'][i])
+    for el in p:
+        if el[0] in nodes:
+            res.append(el[0])
+    return res
+
+"""
+Appy graph cutting to split the event grah into subgraphs
+Parameters
+----------
+G: A directed graph
+
+Returns
+-------
+A list of subgraph
+
+"""
+def graph_cutting(G, iteration=5):
+    parts = [G]
+    for i in range(iteration):
+        sub = []
+        for g in parts:
+            nodes = nx.minimum_node_cut(g)
+            for n in nodes:
+                print(n)
+                g.remove_node(n)
+            sb = subgraphs(g)
+            sub.extend(sb)
+        parts = sub
+    return  parts
+
+def graph_pruning(dGraph, seen, node, day, nodes):
+    res = []
+    predecessors = highestPred(dGraph, node[0])
+    successors = highestPred(dGraph, node[0], direct=1)
+
+    if not predecessors and not successors:
+        return
+    val = {'center': node, 'pound':node[1], 'tweets': []}
+    if predecessors:
+        pred = [t for t in predecessors[0:2]]
+        val['pred'] = pred
+        val['pound'] += sum([node[1] for t in pred])
+    else:
+        return
+        # val['pred'] = []
+    # val.append((*t,'center'))
+    if successors:
+        suc = [t for t in successors[1:3]]
+        val['succ'] = suc
+        val['pound'] += sum([t[1] for t in suc])
+    else:
+        # val['succ'] = []
+        return
+
+    for d in ngrams([e[0] for e in val['pred']] + [val['center'][0]] + [e[0] for e in val['succ']],
+                    2):
+        dd = dGraph.get_edge_data(d[0], d[1])
+        val['tweets'].extend(dd['id'])
+    val['succ'] = [val['succ']]
+    val['pred'] = [val['pred']]
+    val['center'] = [val['center']]
+    res.append(val)
+
+    # removed candidates that have a node corresponding to the center of an event
+    for i, elem in enumerate(res):
+        if 'exist' in elem or 'ignore' in elem:
+            continue
+        entities1 = getEntityNodes(nodes, elem)
+        for s in seen:
+            if s['center'][0][0] == elem['center'][0][0]:
+                elem['exist'] = True
+                elem['ignore'] = True
+                elem['event'] = s['event']
+                break
+
+        if 'exist' in elem or 'ignore' in elem:
+            continue
+
+        for j in range(i + 1, len(res)):
+            elem2 = res[j]
+
+            entities2 = getEntityNodes(nodes, elem2)
+
+            equal, edge = 0, 0
+            for ent in entities1:
+
+                for ent2 in entities2:
+                    if ent == ent2:
+                        equal += 1
+                    if dGraph.has_edge(ent, ent2) or dGraph.has_edge(ent2, ent):
+                        edge += 1
+                        if edge >= 2:
+                            break
+                    if edge >= 2:
+                        break
+                if edge >= 1 and equal >= 1 or (edge == 2 or equal == 2):
+                    elem2['ignore'] = True
+                    elem['pred'].append(elem2['pred'])
+                    elem['succ'].append(elem2['succ'])
+                    elem['center'].append(elem2['center'])
+                    if 'exist' in elem2:
+                        elem['exist'] = True
+                        elem['event'] = elem2['event']
+                    break
+
+    for i, r in enumerate(res):
+        r['day'] = day
+        r['tweets'] = list(set(r['tweets']))
+
+    for i, r in enumerate(res):
+        for j in range(i + 1, len(res)):
+            k = res[j]
+            if 'ignore' in k:
+                continue
+            intersect = set(r['tweets']).intersection(set(k['tweets']))
+            if len(intersect) > 3:
+                r['tweets'].extend(k['tweets'])
+                k['ignore'] = True
+    res = [elem for elem in res if 'ignore' not in elem or len(elem['center']) > 20 or len(elem['center']) < 3]
+    return res

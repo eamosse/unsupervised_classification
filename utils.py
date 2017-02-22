@@ -44,7 +44,7 @@ def evaluation():
     gt,predicted,correct = 0,0,0
     corrects = []
 
-    with open("results_10000_30_3_50_3_0.155.csv", encoding="utf8") as csvfile:
+    with open("results_30_3_0.02.csv", encoding="utf8") as csvfile:
         reader = csv.reader(csvfile, delimiter=',')
         index = 0
         for r in reader:

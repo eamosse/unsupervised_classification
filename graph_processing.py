@@ -1,5 +1,6 @@
 import csv
 import helper
+from helper import  TextHelper
 from tabulate import tabulate
 import utils
 from optparse import OptionParser
@@ -57,7 +58,7 @@ def getEntityNodes2(elem):
 fOld = open('old.txt','w')
 
 divergence = [3,50]
-
+dists = []
 def process(opts):
     ne = opts.ne
     tmin = opts.tmin
@@ -79,12 +80,15 @@ def process(opts):
             tweets = tweets[0]['data']
         else:
             continue
+
+
         # randomly select nb non event tweets to simulate a real scenario
         non_events = dirtyTweets(ne)
         # merge the event and non_event tweets
         data = tweets + non_events
         random.shuffle(data)
         total += len(data)
+
 
         initialGraph.clear()
         log.debug("Building the graph")
@@ -115,7 +119,7 @@ def process(opts):
         #degree = degrees(initialGraph, nbunch=nodes)
         degree = getScore(initialGraph)
 
-        degree = [dg for dg in degree if dg[1]>=smin and dg[0] in nodes]
+        degree = [dg for dg in degree if dg[1]>=smin and dg[0] in nodes and dg[0] not in [d[0] for d in dist]]
 
         if len(degree) == 0:
             continue
@@ -150,8 +154,12 @@ def process(opts):
             exist = False
 
             count = 0
-            """for s in seen:
-                entities2 = initialGraph.neighbors(s['center'])
+            for s in seen:
+                if s['center'][0] == elem['center'][0]:
+                    exist = True
+                    break
+
+                """entities2 = initialGraph.neighbors(s['center'])
 
                 for e1 in entities1:
                     for e2 in entities2:
@@ -161,12 +169,12 @@ def process(opts):
                                 exist = True
                                 break
                     if exist:
-                        break
+                        break"""
 
             if exist:
                 elem['exist'] = True
                 elem['ignore'] = True
-                continue"""
+                continue
 
             for j in range(i+1, len(res)):
                 elem2 = res[j]

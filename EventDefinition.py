@@ -2,6 +2,7 @@ from helper import MongoHelper as db, AnnotationHelper
 from NetworkxHelper import *
 import operator
 import random
+from textrank import *
 
 from networkx.algorithms.flow import shortest_augmenting_path
 db.connect("tweets_dataset")
@@ -59,6 +60,9 @@ def dirtyTweets(nb):
 
 def generateDefinition(ids):
     tweets = db.find(collection="all_tweets", query={'id':{'$in':ids}})
+    texts = ' '.join([t['text'] for t in tweets])
+    return extractSentences(texts)
+    """
     random.shuffle(tweets)
     tweets = tweets[0:15]
     G = nx.DiGraph()
@@ -75,6 +79,8 @@ def generateDefinition(ids):
         return '{} {} {}'.format(' '.join(pred), node, ' '.join(succ))
     else:
         return tweets[0]['text']
+    """
+
 
 def flow_func(G,node1,node2):
     return G.get_edge_data(node1, node2)['weight']
@@ -82,11 +88,9 @@ def flow_func(G,node1,node2):
 if __name__ == '__main__':
     tweets = db.find(collection="annotation_unsupervised", query={'event_id':383}) + dirtyTweets(10000)
     texts = ' ' .join(t['text'] for t in tweets)
-    from summa.summarizer import summarize
-    summary = summarize(texts)
-    print(summary)
 
-    """G = nx.DiGraph()
+
+    G = nx.DiGraph()
     for tweet in tweets:
         ann = AnnotationHelper.format(tweet)
         for a in ann:
@@ -95,31 +99,18 @@ if __name__ == '__main__':
     #deg = degrees(G)
     pos = createLayout(G)
     sub = []
-    G = clean(G)
-    display(G, pos=pos)"""
-    """pos = createLayout(G)
-    nx.draw(G, pos)
-    labels = nx.get_edge_attributes(G, 'weight')
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
-    #edge_labels = nx.draw_networkx_edge_labels(G, pos=nx.spring_layout(G))
-    plt.show()"""
-
-    """for d in deg:
-        pred = highestPred(G, d[0])
-        succ = highestPred(G, d[0],direct=1)
-        print(pred, succ)
-
-
-    for i in range(5):
+    #G = clean(G)
+    G = subgraphs(G)
+    for i in range(1):
         G = G if not sub else sub
         sub = []
         for g in G:
             nodes = nx.minimum_node_cut(g)
+            print("to remove", nodes)
             for n in nodes:
                 print(n)
                 g.remove_node(n)
-            sb = subgraphs(g)
-            print(sb)
-            sub.extend(sb)
+
+            sub.append(g)
         G = sub
-    display(G,pos=pos)"""
+    display(G,pos=pos)

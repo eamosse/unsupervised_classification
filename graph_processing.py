@@ -1,14 +1,12 @@
 import csv
 import helper
 from tabulate import tabulate
-from EventDefinition import *
-import random
 import utils
 from optparse import OptionParser
 from Score import *
 collection = "annotation_unsupervised"
 log = helper.enableLog()
-#helper.disableLog(log)
+helper.disableLog(log)
 non_events =[]
 
 
@@ -48,10 +46,17 @@ def getEntityNodes(nodes,elem):
             res.append(el[0])
     return res
 
+def getEntityNodes2(elem):
+    p = []
+    for i in range(len(elem['center'])):
+        p.extend(elem['pred'][i] + [elem['center'][i]] + elem['succ'][i])
+
+    return p
+
 
 fOld = open('old.txt','w')
 
-divergence = [3,20]
+divergence = [3,50]
 
 def process(opts):
     ne = opts.ne
@@ -63,12 +68,11 @@ def process(opts):
     days = db.intervales(collection)
     initialGraph = nx.DiGraph()
 
-    myfile=open('results_{}_{}_{}_{}_{}_{}.csv'.format(ne,tmin,min(divergence), max(divergence), min_weight,smin), 'w')
+    myfile=open('results_{}_{}_{}.csv'.format(tmin, min_weight,smin), 'w')
     wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
     wr.writerow(["GT", "#tweets", "Detected"])
 
     for day in days:
-        #fNew = open('{}.txt'.format(day), 'w')
         # get the tweets published dring this day
         tweets = db.aggregateDate(collection=collection, day=day)
         if tweets:
@@ -81,11 +85,6 @@ def process(opts):
         data = tweets + non_events
         random.shuffle(data)
         total += len(data)
-
-        """fNew.write("###########################################")
-        fNew.write("Processing event on day {}".format(day))
-        fNew.write("Tweets to process {}".format(len(data)))
-        fNew.write("###########################################")"""
 
         initialGraph.clear()
         log.debug("Building the graph")
@@ -111,8 +110,6 @@ def process(opts):
         olds = []
         res = []
         _nodes = initialGraph.nodes(data=True)
-        #nodes = [n[0] for n in _nodes]
-        #print("In wordnet",nn)
         nodes = [node[0] for node in _nodes if 'entity' in node[1] and node[1]['entity']]
 
         #degree = degrees(initialGraph, nbunch=nodes)
@@ -124,37 +121,24 @@ def process(opts):
             continue
 
 
-        for t in degree:
-
+        while degree:
+            t = degree.pop(0)
             predecessors = highestPred( initialGraph,t[0])
             successors = highestPred(initialGraph,t[0],direct=1)
-
             if not predecessors and not successors:
                 continue
-            val = {'center' : t, 'pound' : t[1], 'tweets' : []}
-            if predecessors:
-                pred = [t for t in predecessors[0:2]]
-                val['pred'] = pred
-                val['pound'] += sum([t[1] for t in pred])
-            else:
-                continue
-                #val['pred'] = []
-            #val.append((*t,'center'))
-            if successors:
-                suc = [t for t in successors[1:3]]
-                val['succ'] = suc
-                val['pound'] += sum([t[1] for t in suc])
-            else:
-                #val['succ'] = []
-                continue
 
-            for d in ngrams([e[0] for e in val['pred']] + [val['center'][0]] + [e[0] for e in val['succ']],
-                            2):
+            vals = [t[0] for t in predecessors[0:2]] + [t[0]]
+            vals = vals + [t[0] for t in successors[1:3]]
+
+            # remove the pred and the succ in the list
+            degree = [d for d in degree if d[0] not in vals]
+
+            val = {'keys' : vals, 'center' : t[0], 'tweets' : []}
+
+            for d in ngrams(vals,2):
                 dd = initialGraph.get_edge_data(d[0], d[1])
                 val['tweets'].extend(dd['id'])
-            val['succ'] = [val['succ']]
-            val['pred'] = [val['pred']]
-            val['center'] = [val['center']]
             res.append(val)
 
         #removed candidates that have a node corresponding to the center of an event
@@ -162,34 +146,46 @@ def process(opts):
         for i,elem in enumerate(res):
             if 'exist' in elem or 'ignore' in elem:
                 continue
-            entities1 = getEntityNodes(nodes, elem)
+            entities1 = initialGraph.neighbors(elem['center'])
             exist = False
-            #ngg = ngrams([g[0] for g in elem['pred'][0] + elem['center'][0:1] + elem['succ'][0]], 2)
-            #print("####",[n for n in ngg])
-            for s in seen:
-                if s['center'][0][0] == elem['center'][0][0]:
-                    exist = True
-                    break
+
+            count = 0
+            """for s in seen:
+                entities2 = initialGraph.neighbors(s['center'])
+
+                for e1 in entities1:
+                    for e2 in entities2:
+                        if initialGraph.has_edge(e1,e2) or initialGraph.has_edge(e2,e1) or e1==e2:
+                            count +=1
+                            if count/(len(entities1) + len(entities2)):
+                                exist = True
+                                break
+                    if exist:
+                        break
 
             if exist:
                 elem['exist'] = True
                 elem['ignore'] = True
-                elem['event'] = s['event']
-                #break
-
-            #s['tweets'].extend(elem['tweets'])
-                    #s['tweets'].extend(elem['tweets'])
-            if 'exist' in elem or 'ignore' in elem:
-                continue
+                continue"""
 
             for j in range(i+1, len(res)):
                 elem2 = res[j]
+                entities2  = initialGraph.neighbors(elem2['center'])
+                exist = False
+                for e1 in entities1:
+                    for e2 in entities2:
+                        if initialGraph.has_edge(e1, e2) or initialGraph.has_edge(e2, e1) or e1 == e2:
+                            count += 1
+                            if count / (len(entities1) + len(entities2)):
+                                exist = True
+                                break
+                    if exist:
+                        elem2['ignore'] = True
+                        if 'exist' in elem2:
+                            elem['exist'] = True
+                        break
 
-                entities2  = getEntityNodes(nodes, elem2)
-
-                equal,edge = 0,0
-                for ent in entities1:
-
+                """for ent in entities1:
                     for ent2 in entities2:
                         if ent == ent2:
                             equal+=1
@@ -199,17 +195,10 @@ def process(opts):
                                 break
                         if edge >=2:
                             break
-                    if edge >= 1 and equal >= 1 or (edge == 2 or equal == 2):
-                        elem2['ignore'] = True
-                        elem['pred'].append( elem2['pred'])
-                        elem['succ'].append(elem2['succ'])
-                        elem['center'].append(elem2['center'])
-                        if 'exist' in elem2:
-                            elem['exist'] = True
-                            elem['event'] = elem2['event']
-                        break
+                    if edge >= 1 and equal >= 1 or (edge == 2 or equal == 2):"""
 
-        res = [elem for elem in res if 'ignore' not in elem or len(elem['center']) > max(divergence) or len(elem['center']) < min(divergence)]
+
+        res = [elem for elem in res if 'ignore' not in elem]
         log.debug("Pruning detected events")
 
         for i, r in enumerate(res):
@@ -244,15 +233,14 @@ def process(opts):
             if not 'exist' in r:
                 if event :
                     for e in event:
-                        news.append([day,text,e, len(r['tweets']),r['pound'], len(r['pred']),len(r['succ']), r['center'], "Yes" if r['center'][0] in nodes else 'No'])
+                        news.append([day,text,e, len(r['tweets']), r['center']])
                         for g in gts:
                             if int(g[0]) == int(e):
                                 g.append(e)
                                 break
                 else:
                     news.append(
-                        [day, text, "-1", len(r['tweets']), r['pound'], len(r['pred']), len(r['succ']),
-                         r['center'], "Yes" if r['center'][0] in nodes else 'No'])
+                        [day, text, "-1", len(r['tweets']), r['center']])
                     gts.append(['-1'])
             else:
                 olds.append([day,text,r['event'], len(tweets)])
@@ -272,7 +260,7 @@ def process(opts):
             seen.append(r)
 
         print("New Events")
-        tt = tabulate(news, headers=["Day", "Keywords", 'Ground Truth',"#tweets", "pound", "pred","succ", "CALC", "center", "ENT"])
+        tt = tabulate(news, headers=["Day", "Description", "Ground Truth", "#tweets", "Keywords"])
         print(tt)
         #fNew.write(tt)
         #fNew.close()
@@ -303,8 +291,8 @@ if __name__ == '__main__':
     parser = OptionParser('''%prog -o ontology -t type -f force ''')
     parser.add_option('-n', '--negative', dest='ne', default=10000, type=int)
     parser.add_option('-t', '--tmin', dest='tmin', default=30, type=int)
-    parser.add_option('-w', '--wmin', dest='wmin', default=1, type=int)
-    parser.add_option('-s', '--smin', dest='smin', default=0.155, type=float)
+    parser.add_option('-w', '--wmin', dest='wmin', default=3, type=int)
+    parser.add_option('-s', '--smin', dest='smin', default=0.02, type=float)
     #print(res)
     opts, args = parser.parse_args()
     process(opts)

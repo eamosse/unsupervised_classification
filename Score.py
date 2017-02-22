@@ -10,6 +10,14 @@ def sumEdges(G, node, direct=1):
     return tot
 
 def getScore(G):
+    calculated_page_rank = nx.pagerank(G, weight='weight')
+
+    # sentences = sorted(calculated_page_rank, key=calculated_page_rank.get,
+    # reverse=True)
+    nodes = {key: calculated_page_rank[key] * 100 for key in calculated_page_rank.keys()}
+    nodes = sorted(nodes.items(), key=operator.itemgetter(1), reverse=True)
+
+    """
     #get all the nodes
     nodes = G.nodes()
     #create a dictionnary with nodes as keys and a default value for all keys
@@ -55,6 +63,9 @@ def getScore(G):
 
     nodes = {key:nDict[key]['score'] for key in nDict.keys()}
     nodes = sorted(nodes.items(), key=operator.itemgetter(1),reverse=True)
+
+    """
+
     return nodes
 
 if __name__ == '__main__':
@@ -62,7 +73,7 @@ if __name__ == '__main__':
     G = nx.DiGraph()
     # get some examples tweets
     db.connect("tweets_dataset")
-    tweets = db.find(collection="annotation_unsupervised", query={'event_id': 383}) + dirtyTweets(3000)
+    tweets = db.find(collection="annotation_unsupervised", query={'event_id': 383}) + dirtyTweets(100000)
     for t in tweets:
         ann = AnnotationHelper.format(t)
         for a in ann:
@@ -74,4 +85,12 @@ if __name__ == '__main__':
                     parts = ngrams(l[0].split() + l[1].split(), 2)
                     for p in parts:
                         addEdge(G, p[0], p[1], t['id'])
-    getScore(G)
+    #nodes = getScore(G)
+    calculated_page_rank = nx.pagerank(G, weight='weight')
+
+    #sentences = sorted(calculated_page_rank, key=calculated_page_rank.get,
+                       #reverse=True)
+    nodes = {key: calculated_page_rank[key]*100 for key in calculated_page_rank.keys()}
+    nodes = sorted(nodes.items(), key=operator.itemgetter(1), reverse=True)
+    print(nodes)
+    #print(calculated_page_rank)

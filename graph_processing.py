@@ -57,6 +57,7 @@ def process(opts):
     ne = opts.ne
     tmin = opts.tmin
     min_weight = opts.wmin
+    smin = opts.smin
     total = 0
     gts = utils.gtEvents(limit=tmin)
     days = db.intervales(collection)
@@ -117,7 +118,7 @@ def process(opts):
         #degree = degrees(initialGraph, nbunch=nodes)
         degree = getScore(initialGraph)
 
-        degree = [dg for dg in degree if dg[1]>0.15 and dg[0] in nodes]
+        degree = [dg for dg in degree if dg[1]>=smin and dg[0] in nodes]
 
         if len(degree) == 0:
             continue
@@ -300,9 +301,10 @@ def process(opts):
 if __name__ == '__main__':
 
     parser = OptionParser('''%prog -o ontology -t type -f force ''')
-    parser.add_option('-ne', '--negative', dest='ne', default=10000, type=int)
-    parser.add_option('-tmin', '--tmin', dest='tmin', default=30, type=int)
-    parser.add_option('-wmin', '--wmin', dest='wmin', default=1, type=int)
+    parser.add_option('-n', '--negative', dest='ne', default=10000, type=int)
+    parser.add_option('-t', '--tmin', dest='tmin', default=30, type=int)
+    parser.add_option('-w', '--wmin', dest='wmin', default=1, type=int)
+    parser.add_option('-s', '--smin', dest='smin', default=0.155, type=float)
     #print(res)
     opts, args = parser.parse_args()
     process(opts)

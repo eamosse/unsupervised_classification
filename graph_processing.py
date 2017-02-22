@@ -88,7 +88,7 @@ def process(opts):
         data = tweets + non_events
         random.shuffle(data)
         total += len(data)
-
+        dist = []
 
         initialGraph.clear()
         log.debug("Building the graph")

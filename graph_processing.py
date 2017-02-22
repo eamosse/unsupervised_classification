@@ -4,6 +4,7 @@ from tabulate import tabulate
 from EventDefinition import *
 import random
 import utils
+from optparse import OptionParser
 from Score import *
 collection = "annotation_unsupervised"
 log = helper.enableLog()
@@ -50,12 +51,12 @@ def getEntityNodes(nodes,elem):
 
 fOld = open('old.txt','w')
 
-ne = 10000
-tmin = 30
 divergence = [3,20]
-min_weight = 1
 
-def process():
+def process(opts):
+    ne = opts.ne
+    tmin = opts.tmin
+    min_weight = opts.wmin
     total = 0
     gts = utils.gtEvents(limit=tmin)
     days = db.intervales(collection)
@@ -297,6 +298,11 @@ def process():
 
 
 if __name__ == '__main__':
-    #res = db.intervales("annotation_unsupervised")
+
+    parser = OptionParser('''%prog -o ontology -t type -f force ''')
+    parser.add_option('-ne', '--negative', dest='ne', default=10000, type=int)
+    parser.add_option('-tmin', '--tmin', dest='tmin', default=30, type=int)
+    parser.add_option('-wmin', '--wmin', dest='wmin', default=1, type=int)
     #print(res)
-    process()
+    opts, args = parser.parse_args()
+    process(opts)

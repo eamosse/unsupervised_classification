@@ -53,7 +53,6 @@ def unique_everseen(iterable, key=None):
                 seen_add(k)
                 yield element
 
-
 def lDistance(firstString, secondString):
     """Function to find the Levenshtein distance between two words/sentences -
     gotten from http://rosettacode.org/wiki/Levenshtein_distance#Python

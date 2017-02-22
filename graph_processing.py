@@ -5,6 +5,7 @@ from tabulate import tabulate
 import utils
 from optparse import OptionParser
 from Score import *
+from textrank import  *
 collection = "annotation_unsupervised"
 log = helper.enableLog()
 helper.disableLog(log)
@@ -59,6 +60,7 @@ fOld = open('old.txt','w')
 
 divergence = [3,50]
 dists = []
+tweetsSeen = set()
 def process(opts):
     ne = opts.ne
     tmin = opts.tmin
@@ -86,6 +88,7 @@ def process(opts):
         non_events = dirtyTweets(ne)
         # merge the event and non_event tweets
         data = tweets + non_events
+
         random.shuffle(data)
         total += len(data)
         dist = []
@@ -93,6 +96,9 @@ def process(opts):
         initialGraph.clear()
         log.debug("Building the graph")
         for t in data:
+            if t['text'] in tweetsSeen:
+                continue
+            tweetsSeen.add(t['text'])
             ann = AnnotationHelper.format(t)
             if len(ann) == 0:
                 ignored.append(t['id'])

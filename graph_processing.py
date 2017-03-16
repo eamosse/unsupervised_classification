@@ -77,7 +77,7 @@ def process(opts):
 
     for group in groups:
         day = group['day']
-        log.debug(group['day'] + " - " + group['interval'])
+        log.debug(str(group['day']) + " - " + str(group['interval']))
         #day =
         # get the tweets published dring this day
         #print(day, group[day])

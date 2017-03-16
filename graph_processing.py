@@ -203,10 +203,6 @@ def process(opts):
         log.debug("Pruning detected events")
 
         for i, r in enumerate(res):
-            r['day'] = day
-            r['tweets'] = list(set(r['tweets']))
-
-        for i, r in enumerate(res):
             for j in range(i + 1, len(res)):
                 k = res[j]
                 if 'ignore' in k:
@@ -217,6 +213,10 @@ def process(opts):
                     k['ignore'] = True
 
         events = [e for e in res if 'ignore' not in e]
+
+        for i, r in enumerate(res):
+            r['day'] = day
+            r['tweets'] = list(set(r['tweets']))
         # log.debug("==========EVENT==========")
 
         for i,r in enumerate(events):

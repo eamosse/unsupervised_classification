@@ -177,7 +177,7 @@ def process(opts):
                 elem['ignore'] = True
                 continue
 
-            for j in range(i+1, len(res)):
+            """for j in range(i+1, len(res)):
                 elem2 = res[j]
                 entities2  = initialGraph.neighbors(elem2['center'][0])
                 if not entities2:
@@ -185,6 +185,7 @@ def process(opts):
                     elem['exist'] = True
                     continue
                 exist = False
+                count = 0
                 for e1 in entities1:
                     for e2 in entities2:
                         if initialGraph.has_edge(e1, e2) or initialGraph.has_edge(e2, e1) or e1 == e2:
@@ -196,7 +197,7 @@ def process(opts):
                         elem2['ignore'] = True
                         if 'exist' in elem2:
                             elem['exist'] = True
-                        break
+                        break"""
 
         res = [elem for elem in res if 'ignore' not in elem]
         log.debug("Pruning detected events")

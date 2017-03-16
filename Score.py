@@ -1,79 +1,174 @@
 import networkx as nx
 from NetworkxHelper import *
-from helper import MongoHelper as db, AnnotationHelper
+from helper.TextHelper import *
 from EventDefinition import *
+from networkx.exception import NetworkXError
 
+"""
+Taken from nx.pagerank
+"""
+def pagerank(G, alphas=None, personalization=None,
+             max_iter=100, tol=1.0e-6, nstart=None, weight='weight',
+             dangling=None):
+    alpha = 0.85
+    if len(G) == 0:
+        return {}
+
+    if not G.is_directed():
+        D = G.to_directed()
+    else:
+        D = G
+
+    # Create a copy in (right) stochastic form
+    W = nx.stochastic_graph(D, weight=weight)
+    N = W.number_of_nodes()
+
+    if not alphas:
+        alphas = dict.fromkeys(W, 0.85)
+
+    # Choose fixed starting vector if not given
+    if nstart is None:
+        x = dict.fromkeys(W, 1.0 / N)
+    else:
+        # Normalized nstart vector
+        s = float(sum(nstart.values()))
+        x = dict((k, v / s) for k, v in nstart.items())
+
+    if personalization is None:
+        # Assign uniform personalization vector if not given
+        p = dict.fromkeys(W, 1.0 / N)
+    else:
+        missing = set(G) - set(personalization)
+        if missing:
+            raise NetworkXError('Personalization dictionary '
+                                'must have a value for every node. '
+                                'Missing nodes %s' % missing)
+        s = float(sum(personalization.values()))
+        p = dict((k, v / s) for k, v in personalization.items())
+
+    if dangling is None:
+        # Use personalization vector if dangling vector not specified
+        dangling_weights = p
+    else:
+        missing = set(G) - set(dangling)
+        if missing:
+            raise NetworkXError('Dangling node dictionary '
+                                'must have a value for every node. '
+                                'Missing nodes %s' % missing)
+        s = float(sum(dangling.values()))
+        dangling_weights = dict((k, v/s) for k, v in dangling.items())
+    dangling_nodes = [n for n in W if W.out_degree(n, weight=weight) == 0.0]
+
+    # power iteration: make up to max_iter iterations
+    for _ in range(max_iter):
+        xlast = x
+        x = dict.fromkeys(xlast.keys(), 0)
+        danglesum =  sum(alphas[n] * xlast[n] for n in dangling_nodes if n in alphas)
+        for n in x:
+            if n not in alphas:
+                continue
+            # this matrix multiply looks odd because it is
+            # doing a left multiply x^T=xlast^T*W
+            for nbr in W[n]:
+                x[nbr] += alphas[n] * xlast[n] * W[n][nbr][weight]
+            x[n] += danglesum * dangling_weights[n] + (1.0 - alphas[n]) * p[n]
+        # check convergence, l1 norm
+        err = sum([abs(x[n] - xlast[n]) for n in x])
+        if err < N*tol:
+            return x
+    raise NetworkXError('pagerank: power iteration failed to converge '
+                        'in %d iterations.' % max_iter)
+
+def pagerank2(G, alpha=0.85, personalization=None,
+             max_iter=100, tol=1.0e-6, nstart=None, weight='weight',
+             dangling=None):
+    if len(G) == 0:
+        return {}
+
+    if not G.is_directed():
+        D = G.to_directed()
+    else:
+        D = G
+
+    # Create a copy in (right) stochastic form
+    W = nx.stochastic_graph(D, weight=weight)
+    N = W.number_of_nodes()
+
+    # Choose fixed starting vector if not given
+    if nstart is None:
+        x = dict.fromkeys(W, 1.0 / N)
+    else:
+        # Normalized nstart vector
+        s = float(sum(nstart.values()))
+        x = dict((k, v / s) for k, v in nstart.items())
+
+    if personalization is None:
+        # Assign uniform personalization vector if not given
+        p = dict.fromkeys(W, 1.0 / N)
+    else:
+        missing = set(G) - set(personalization)
+        if missing:
+            raise NetworkXError('Personalization dictionary '
+                                'must have a value for every node. '
+                                'Missing nodes %s' % missing)
+        s = float(sum(personalization.values()))
+        p = dict((k, v / s) for k, v in personalization.items())
+
+    if dangling is None:
+        # Use personalization vector if dangling vector not specified
+        dangling_weights = p
+    else:
+        missing = set(G) - set(dangling)
+        for m in missing:
+            dangling[m] = 0.85
+
+        """if missing:
+            raise NetworkXError('Dangling node dictionary '
+                                'must have a value for every node. '
+                                'Missing nodes %s' % missing)"""
+        s = float(sum(dangling.values()))
+        dangling_weights = dict((k, v/s) for k, v in dangling.items())
+    dangling_nodes = [n for n in W if W.out_degree(n, weight=weight) == 0.0]
+
+    # power iteration: make up to max_iter iterations
+    for _ in range(max_iter):
+        xlast = x
+        x = dict.fromkeys(xlast.keys(), 0)
+        danglesum = alpha * sum(xlast[n] for n in dangling_nodes)
+        for n in x:
+            # this matrix multiply looks odd because it is
+            # doing a left multiply x^T=xlast^T*W
+            for nbr in W[n]:
+                x[nbr] += alpha * xlast[n] * W[n][nbr][weight]
+            x[n] += danglesum * dangling_weights[n] + (1.0 - alpha) * p[n]*N
+        # check convergence, l1 norm
+        err = sum([abs(x[n] - xlast[n]) for n in x])
+        if err < N*tol:
+            return x
+    raise NetworkXError('pagerank: power iteration failed to converge '
+                        'in %d iterations.' % max_iter)
 
 def sumEdges(G, node, direct=1):
     nodes = G.predecessors(node) if direct ==-1 else G.successors(node)
     tot = sum([G.get_edge_data(n, node)['weight'] if direct == -1 else G.get_edge_data(node, n)['weight'] for n in nodes])
     return tot
 
-def getScore(G):
-    calculated_page_rank = nx.pagerank(G, weight='weight')
-
-    # sentences = sorted(calculated_page_rank, key=calculated_page_rank.get,
-    # reverse=True)
-    nodes = {key: calculated_page_rank[key] * 100 for key in calculated_page_rank.keys()}
+previous = []
+def getScore(G, dangling=True):
+    X = None
+    if dangling:
+        degree = degrees(G, nbunch=G.nodes())
+        degree = [d if d[1] > 0 else (d[0], 1) for d in degree]
+        previous.append('=>'.join(['{}=>'.format(t[0]) * t[1] for t in degree]))
+        X = buildTfIdf(previous) if dangling else None
+    calculated_page_rank = pagerank2(G,dangling=X)
+    nodes = {key: calculated_page_rank[key]*100 for key in calculated_page_rank.keys()}
     nodes = sorted(nodes.items(), key=operator.itemgetter(1), reverse=True)
-
-    """
-    #get all the nodes
-    nodes = G.nodes()
-    #create a dictionnary with nodes as keys and a default value for all keys
-    nDict = {n:{'score':0.1, 'done':False} for n in nodes}
-    #set a threshold
-    threshold = 0.0001
-    d = 0.85
-    shouldIterate = True
-    while shouldIterate:
-        for node in nodes:
-            #predecessors of the node
-            predecessors = G.predecessors(node)
-            #current score for the node
-            shouldIterate = not nDict[node]['done']
-            if not shouldIterate:
-                continue
-            previousScore = nDict[node]['score']
-            currentScore = 0
-            #iterate over the predecessors of the current node
-            for pred in predecessors:
-                #get the weight of the current predecessor
-                weight = G.get_edge_data(pred, node)['weight']
-                #get the successors of the current predecessor of the current node
-                successors = G.successors(pred)
-                #compute sum of the successors of the current predecessor of a node
-                pound_out = sum([sumEdges(G, succ, direct=1) for succ in successors])
-                if pound_out == 0 :
-                    continue
-                #ratio between the weight of the edge between the current node and the current predecessor
-                ratio = weight/pound_out
-                #get the score of the current predecessor
-                score_pred = nDict[pred]['score']
-                #mult the score by the ratio
-                score_ratio = ratio*score_pred
-                #add the score ratio to the current score of the node
-                currentScore += score_ratio
-            #at this stage, we have the sum of all the ratio for the current node
-            currentScore = (1-d) + d*currentScore
-            #update the value of the node in the dict
-            nDict[node]['score'] = currentScore
-            if abs(currentScore-previousScore) <= threshold:
-                nDict[node]['done'] = True
-
-    nodes = {key:nDict[key]['score'] for key in nDict.keys()}
-    nodes = sorted(nodes.items(), key=operator.itemgetter(1),reverse=True)
-
-    """
-
     return nodes
 
-if __name__ == '__main__':
+def mGraph(tweets):
     # create a fake graph
     G = nx.DiGraph()
-    # get some examples tweets
-    db.connect("tweets_dataset")
-    tweets = db.find(collection="annotation_unsupervised", query={'event_id': 383}) + dirtyTweets(100000)
     for t in tweets:
         ann = AnnotationHelper.format(t)
         for a in ann:
@@ -85,12 +180,41 @@ if __name__ == '__main__':
                     parts = ngrams(l[0].split() + l[1].split(), 2)
                     for p in parts:
                         addEdge(G, p[0], p[1], t['id'])
-    #nodes = getScore(G)
-    calculated_page_rank = nx.pagerank(G, weight='weight')
+    return G
 
-    #sentences = sorted(calculated_page_rank, key=calculated_page_rank.get,
-                       #reverse=True)
-    nodes = {key: calculated_page_rank[key]*100 for key in calculated_page_rank.keys()}
-    nodes = sorted(nodes.items(), key=operator.itemgetter(1), reverse=True)
-    print(nodes)
-    #print(calculated_page_rank)
+
+if __name__ == '__main__':
+    # get some examples tweets
+    dangling = True
+    db.connect("tweets_dataset")
+    dirty = dirtyTweets(10000, shuffle=0)
+    tweets = db.find(collection="annotation_unsupervised", query={'event_id': 383}) + dirty
+    G = mGraph(tweets)
+    mergeNodes(G)
+    gs = clean(G, min_weight=3)
+    scores1 = getScore(G, dangling=dangling)
+
+    dirty = dirtyTweets(10000,shuffle=0, min=10000)
+    tweets = db.find(collection="annotation_unsupervised", query={'event_id': 382}) + dirty
+    G = mGraph(tweets)
+    mergeNodes(G)
+    clean(G, min_weight=3)
+    scores2 = getScore(G , dangling=dangling)
+
+    dirty = dirtyTweets(10000, min=20000, shuffle=0)
+    tweets = db.find(collection="annotation_unsupervised", query={'event_id': 381}) + dirty
+    G = mGraph(tweets)
+    mergeNodes(G)
+    clean(G, min_weight=3)
+    scores3 = getScore(G , dangling=dangling)
+
+    for t in scores1:
+        for tt in scores2:
+            if t[0] != tt[0]:
+                continue
+            for ttt in scores3:
+                if t[0] == ttt[00]:
+                    print(t,tt,ttt)
+
+
+

@@ -8,10 +8,22 @@ from optparse import OptionParser
 #locale.setlocale(locale.LC_ALL, "en_EN")
 log = helper.enableLog()
 import os
+import time
 #sys.stdout = open('output.csv', "w",encoding="utf8")
 
 db.connect("tweets_dataset")
 ids = {}
+
+def duplicate(_from,to,what) :
+    print(_from, to, what)
+    db.connect(_from)
+    data = db.find(what)
+    print(data)
+    db.connect(to)
+    db.insert(what,data)
+
+def snowflake2utc(sf):
+    return ((sf >> 22) + 1288834974657) / 1000.0
 
 def loadIs(file):
     global ids
@@ -21,6 +33,33 @@ def loadIs(file):
         for t in reader:
             ids[t[1]] = t[0]
     return ids
+
+
+def reconciliate():
+    maps = {}
+    with open("relevant_tweets.tsv", encoding="utf8") as csvfile:
+        reader = csv.reader(csvfile, delimiter='\t')
+        for r in reader:
+            maps[r[1]] = r[0]
+
+    with open("all_tweets.txt", encoding="utf8") as csvfile:
+        reader = csv.reader(csvfile, delimiter='\t')
+        tweets = []
+        for t in reader:
+            res = snowflake2utc(int(t[1]))
+            if t[1] in maps:
+                event = db.find("category", query={"event_id": int(maps[t[1]])})[0]
+                tweet = {'text' : t[4],
+                         'id': t[1],
+                         'date' : pp.parse(time.ctime(int(res))),
+                         'dataset' : 'event 2012',
+                         'event_id' : event['event_text'],
+                         'event_text': event['event_text'],
+                         'categorie_text': event['categorie_text']
+                         }
+                tweets.append(tweet)
+
+    db.insert("events", tweets)
 
 
 def saveRelevent(file):
@@ -100,12 +139,9 @@ def parseFile(folder):
 
 
 if __name__ == '__main__':
-    parser = OptionParser('''%prog -o ontology -t type -f force ''')
-    parser.add_option('-r', '--relevant', dest='relevant', default="relevant_id.tsv")
-    parser.add_option('-f', '--folder', dest='folder', default="part")
-    opts, args = parser.parse_args()
+    reconciliate()
 
-    saveRelevent(opts.relevant)
+    #saveRelevent(opts.relevant)
     #parseFile(opts.folder)
 
 

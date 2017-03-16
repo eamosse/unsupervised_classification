@@ -50,13 +50,12 @@ def top(G,node,ids,orient=-1):
         res.reverse()
     return res,ids
 
-def dirtyTweets(nb):
+def dirtyTweets(nb, min=0, shuffle=3):
     non_events = db.find("non_event")
     non_events = [event for event in non_events if not event['text'].startswith('rt')]
-    random.shuffle(non_events)
-    random.shuffle(non_events)
-    random.shuffle(non_events)
-    return non_events[0:nb]
+    for s in range(shuffle):
+        random.shuffle(non_events)
+    return non_events[min:nb]
 
 def generateDefinition(ids):
     tweets = db.find(collection="all_tweets", query={'id':{'$in':ids}})

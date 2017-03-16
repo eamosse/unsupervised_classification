@@ -70,7 +70,7 @@ Merge edges which nodes co-occur in a single node
 """
 def mergeNodes(initialGraph):
     nodes = initialGraph.nodes(data=True)
-    nodes = [n for n in nodes if len(n[0].split()) > 1]
+    #nodes = [n for n in nodes if len(n[0].split()) > 1]
     for node in nodes:
         ng = ngrams(node[0].split(), 2)
         for n in ng:
@@ -218,8 +218,8 @@ def display(G, pos):
 
 def degrees(G, nbunch=None):
     degree = G.degree(weight='weight', nbunch=nbunch)
-    degree = [d for d in degree.items() if d[1] > 2]
-    degree = [de for de in degree if not TextHelper.isStopWord(de[0])]
+    degree = [d for d in degree.items()]
+    #{degree = [de for de in degree if not TextHelper.isStopWord(de[0])]
     degree.sort(key=operator.itemgetter(1), reverse=True)
     return degree
 

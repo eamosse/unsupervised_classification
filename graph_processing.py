@@ -8,7 +8,7 @@ from Score import *
 from textrank import  *
 collection = "events_annotated"
 log = helper.enableLog()
-helper.disableLog(log)
+#helper.disableLog(log)
 non_events =[]
 previous = []
 

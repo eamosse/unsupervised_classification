@@ -68,20 +68,24 @@ def process(opts):
     smin = opts.smin
     total = 0
     gts = utils.gtEvents(limit=tmin)
-    days = db.intervales(collection)
+    group = db.intervales(collection)
     initialGraph = nx.DiGraph()
 
     myfile=open('results_{}_{}_{}.csv'.format(tmin, min_weight,smin), 'w')
     wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
     wr.writerow(["GT", "#tweets", "Detected"])
 
-    for day in days:
+    for day in group.keys():
+        #day =
         # get the tweets published dring this day
-        tweets = db.aggregateDate(collection=collection, day=day)
-        if tweets:
+        #print(day, group[day])
+        #continue
+        #tweets = db.aggregateDate(collection=collection, day=day)
+        tweets = db.find(collection,query={"id":{"$in":group[day]}})
+        """if tweets:
             tweets = tweets[0]['data']
         else:
-            continue
+            continue"""
 
         # randomly select nb non event tweets to simulate a real scenario
         non_events = dirtyTweets(ne)

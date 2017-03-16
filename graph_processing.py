@@ -68,20 +68,22 @@ def process(opts):
     smin = opts.smin
     total = 0
     gts = utils.gtEvents(limit=tmin)
-    group = db.intervales(collection)
+    groups = db.intervales(collection)
     initialGraph = nx.DiGraph()
 
     myfile=open('results_{}_{}_{}.csv'.format(tmin, min_weight,smin), 'w')
     wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
     wr.writerow(["GT", "#tweets", "Detected"])
 
-    for day in group.keys():
+    for group in groups:
+        day = group['day']
+
         #day =
         # get the tweets published dring this day
         #print(day, group[day])
         #continue
         #tweets = db.aggregateDate(collection=collection, day=day)
-        tweets = db.find(collection,query={"id":{"$in":group[day]}})
+        tweets = db.find(collection,query={"id":{"$in":group['data']}})
         """if tweets:
             tweets = tweets[0]['data']
         else:
@@ -265,7 +267,7 @@ if __name__ == '__main__':
 
 
     parser = OptionParser('''%prog -o ontology -t type -f force ''')
-    parser.add_option('-n', '--negative', dest='ne', default=10000, type=int)
+    parser.add_option('-n', '--negative', dest='ne', default=5000, type=int)
     parser.add_option('-t', '--tmin', dest='tmin', default=30, type=int)
     parser.add_option('-w', '--wmin', dest='wmin', default=3, type=int)
     parser.add_option('-s', '--smin', dest='smin', default=0.02, type=float)

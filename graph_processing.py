@@ -169,7 +169,7 @@ def process(opts):
             exist = False
 
             for s in seen:
-                if s['center'][0] == elem['center'][0] or len(set(s['keys']).intersection(set(elem['keys']))) > 2:
+                if s['center'][0] == elem['center'][0] or len(set(s['keys']).intersection(set(elem['keys']))) > 1:
                     elem['exist'] = True
                     elem['ignore'] = True
                     s['tweets'].extend(elem['tweets'])
@@ -218,6 +218,7 @@ def process(opts):
                 intersect= set(r['tweets']).intersection(set(k['tweets']))
                 if len(intersect) > 3:
                     r['tweets'].extend(k['tweets'])
+                    r['keys'].extend(k['keys'])
                     k['ignore'] = True
 
         events = [e for e in res if 'ignore' not in e]
@@ -225,6 +226,7 @@ def process(opts):
         for i, r in enumerate(res):
             r['day'] = day
             r['tweets'] = list(set(r['tweets']))
+            r['keys'] = list(set(r['keys']))
         # log.debug("==========EVENT==========")
 
         for i,r in enumerate(events):

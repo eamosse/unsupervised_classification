@@ -63,10 +63,7 @@ def reconciliate():
 
 def update():
     tweets  = db.find("events_annotated")
-    for t in tweets:
-        event = db.find("category", query={"event_text": t['event_text']})
-        if len(event) > 0:
-            db.update("events_annotated", condition={"_id": t['_id']}, value={'event_id': event[0]['event_id']})
+    db.insert("all_tweets", tweets)
 
 def saveRelevent(file):
     with open(file, encoding="utf8") as csvfile:

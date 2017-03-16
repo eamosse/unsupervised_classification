@@ -241,8 +241,9 @@ def process(opts):
             text = generateDefinition(tweets) #
             log.debug("Getting GT")
             event = AnnotationHelper.groundTruthEvent(collection,tweets)
+            log.debug(event)
             if not 'exist' in r:
-                if event :
+                if event and len(event) == 1:
                     news.append([day, text, event[0], len(r['tweets']), r['keys']])
                     for g in gts:
                         if int(g[0]) == int(event[0]):

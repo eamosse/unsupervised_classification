@@ -67,7 +67,7 @@ def process(opts):
     min_weight = opts.wmin
     smin = opts.smin
     total = 0
-    gts = utils.gtEvents(limit=tmin)
+    gts = utils.gtEvents(limit=1)
     groups = db.intervales(collection)
     initialGraph = nx.DiGraph()
 
@@ -77,7 +77,7 @@ def process(opts):
 
     for group in groups:
         day = group['day']
-
+        log.debug(group)
         #day =
         # get the tweets published dring this day
         #print(day, group[day])
@@ -118,34 +118,35 @@ def process(opts):
                             addEdge(initialGraph,p[0],p[1],t['id'])
 
         #Rename similar nodes
-        log.debug("Cleaning the graph")
+        log.debug("Merging nodes")
         mergeNodes(initialGraph)
+        log.debug("Cleaning the graph")
         clean(initialGraph, min_weight=min_weight)
         news = []
         olds = []
         res = []
+        log.debug("Retrieving nodes")
         _nodes = initialGraph.nodes(data=True)
         previous.append('=>'.join([n[0] for n in _nodes]))
         nodes = [node[0] for node in _nodes if 'entity' in node[1] and node[1]['entity']]
 
-        #degree = degrees(initialGraph, nbunch=nodes)
         degree = getScore(initialGraph)
         degree = [dg for dg in degree if dg[1]>=smin and dg[0] in nodes and dg[0] not in [d[0] for d in dist]]
 
         if len(degree) == 0:
             continue
 
-
+        log.debug("Ranking nodes")
         while degree:
             t = degree[0]
             predecessors = highestPred( initialGraph,t[0])
             successors = highestPred(initialGraph,t[0],direct=1)
             if not predecessors and not successors:
+                degree = [d for d in degree if d[0]!=t[0]]
                 continue
 
             vals = [t[0] for t in predecessors[0:2]] + [t[0]]
             vals = vals + [t[0] for t in successors[1:3]]
-
 
             # remove the pred and the succ in the list
             degree = [d for d in degree if d[0] not in vals]
@@ -225,7 +226,7 @@ def process(opts):
 
             #print(day, tweets)
             text = generateDefinition(tweets) #
-            event = AnnotationHelper.groundTruthEvent(tweets)
+            event = AnnotationHelper.groundTruthEvent(collection,tweets)
             if not 'exist' in r:
                 if event :
                     news.append([day, text, event[0], len(r['tweets']), r['keys']])
@@ -267,8 +268,8 @@ if __name__ == '__main__':
 
 
     parser = OptionParser('''%prog -o ontology -t type -f force ''')
-    parser.add_option('-n', '--negative', dest='ne', default=5000, type=int)
-    parser.add_option('-t', '--tmin', dest='tmin', default=30, type=int)
+    parser.add_option('-n', '--negative', dest='ne', default=100000, type=int)
+    parser.add_option('-t', '--tmin', dest='tmin', default=1, type=int)
     parser.add_option('-w', '--wmin', dest='wmin', default=3, type=int)
     parser.add_option('-s', '--smin', dest='smin', default=0.02, type=float)
     #print(res)

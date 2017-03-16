@@ -2,6 +2,7 @@ from helper import MongoHelper as db
 import csv
 from tabulate import tabulate
 db.connect("tweets_dataset")
+collection= "events_annotated"
 """
 Do not considere events with less than limit tweets
 """
@@ -14,7 +15,7 @@ def generateGTData(limit=3):
 
 def gtEvents(limit=1):
     res = []
-    stat = db.stat('annotation_unsupervised')
+    stat = db.stat(collection)
     for s in stat:
         if len(s['data']) >= limit:
             res.append([s['_id']['event_id'], len(s['data'])])
@@ -33,7 +34,7 @@ def statCategory():
     pipeline = [
         {"$group": {"_id": "$categorie_text",
                     "data": {"$addToSet": {'event_id': '$event_id'}}}}]
-    res2 = db.aggregate("annotation_unsupervised", pipeline)
+    res2 = db.aggregate(collection, pipeline)
     for r in res2:
         res[r['_id']]['events'] = len(r['data'])
 
@@ -74,7 +75,7 @@ def evaluation():
 
 
 
-    scores = [0.01,0.02,0.03,0.04,0.05]
+    scores = [0.02]
     results = []
     categories = []
     headers = [['_']]
@@ -83,7 +84,7 @@ def evaluation():
         gt, predicted, correct = 0, 0, 0
         headers[0].append("alpha={}".format(score))
         headers[0].append('')
-        with open("results_1_3_{}.csv".format(score), encoding="utf8") as csvfile:
+        with open("results_30_3_{}.csv".format(score), encoding="utf8") as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             index = 0
 
@@ -119,8 +120,7 @@ def evaluation():
     print(tabulate(categories, tablefmt=_format))
 
 
-
-_format = "latex"
+_format = "grid"
 if __name__ == '__main__':
     evaluation()
     #statCategory()

@@ -61,6 +61,12 @@ def reconciliate():
 
     db.insert("events", tweets)
 
+def update():
+    tweets  = db.find("events_annotated")
+    for t in tweets:
+        event = db.find("category", query={"event_text": t['event_text']})
+        if len(event) > 0:
+            db.update("events_annotated", condition={"_id": t['_id']}, value={'event_id': event[0]['event_id']})
 
 def saveRelevent(file):
     with open(file, encoding="utf8") as csvfile:
@@ -139,7 +145,7 @@ def parseFile(folder):
 
 
 if __name__ == '__main__':
-    reconciliate()
+    update()
 
     #saveRelevent(opts.relevant)
     #parseFile(opts.folder)

@@ -98,7 +98,7 @@ def process(opts):
         total += len(data)
         dist = []
 
-        initialGraph.clear()
+        #initialGraph.clear()
         log.debug("Building the graph")
         for t in data:
             if t['text'] in tweetsSeen:
@@ -131,8 +131,8 @@ def process(opts):
         nodes = [node[0] for node in _nodes if 'entity' in node[1] and node[1]['entity']]
 
         degree = getScore(initialGraph)
-        degree = [dg for dg in degree if dg[1]>=smin and dg[0] in nodes and dg[0] not in [d[0] for d in dist]]
 
+        degree = [dg for dg in degree if dg[1]>=smin and dg[0] in nodes and dg[0] not in [d[0] for d in dist]]
         if len(degree) == 0:
             continue
 
@@ -234,7 +234,7 @@ def process(opts):
             if not tweets or len(tweets) < 3:
                 continue"""
             tweets = r['tweets']
-            log.debug (tweets)
+            #log.debug (tweets)
             if len(tweets) < 10: # or len(r['pred']) <=2 or (len(r['succ']) <=2)) and len(r['tweets']) < 10:
                 continue
 
@@ -243,7 +243,7 @@ def process(opts):
             text = generateDefinition(tweets) #
             log.debug("Getting GT")
             event = AnnotationHelper.groundTruthEvent(collection,tweets)
-            log.debug(event)
+            #log.debug(event)
             if not 'exist' in r:
                 if event and len(event) == 1:
                     news.append([day, text, event[0], len(r['tweets']), r['keys']])

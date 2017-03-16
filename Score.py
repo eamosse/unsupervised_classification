@@ -7,10 +7,10 @@ from networkx.exception import NetworkXError
 """
 Taken from nx.pagerank
 """
-def pagerank(G, alphas=None, personalization=None,
+def pagerank(G, alpha=0.85, personalization=None,
              max_iter=100, tol=1.0e-6, nstart=None, weight='weight',
              dangling=None):
-    alpha = 0.85
+
     if len(G) == 0:
         return {}
 
@@ -22,9 +22,6 @@ def pagerank(G, alphas=None, personalization=None,
     # Create a copy in (right) stochastic form
     W = nx.stochastic_graph(D, weight=weight)
     N = W.number_of_nodes()
-
-    if not alphas:
-        alphas = dict.fromkeys(W, 0.85)
 
     # Choose fixed starting vector if not given
     if nstart is None:
@@ -40,9 +37,11 @@ def pagerank(G, alphas=None, personalization=None,
     else:
         missing = set(G) - set(personalization)
         if missing:
-            raise NetworkXError('Personalization dictionary '
+            for m in missing:
+                personalization[m] = 1.0 / N
+            """raise NetworkXError('Personalization dictionary '
                                 'must have a value for every node. '
-                                'Missing nodes %s' % missing)
+                                'Missing nodes %s' % missing)"""
         s = float(sum(personalization.values()))
         p = dict((k, v / s) for k, v in personalization.items())
 
@@ -63,21 +62,21 @@ def pagerank(G, alphas=None, personalization=None,
     for _ in range(max_iter):
         xlast = x
         x = dict.fromkeys(xlast.keys(), 0)
-        danglesum =  sum(alphas[n] * xlast[n] for n in dangling_nodes if n in alphas)
+        danglesum = alpha * sum(xlast[n] for n in dangling_nodes)
         for n in x:
-            if n not in alphas:
-                continue
             # this matrix multiply looks odd because it is
             # doing a left multiply x^T=xlast^T*W
             for nbr in W[n]:
-                x[nbr] += alphas[n] * xlast[n] * W[n][nbr][weight]
-            x[n] += danglesum * dangling_weights[n] + (1.0 - alphas[n]) * p[n]
+                x[nbr] += alpha * xlast[n] * W[n][nbr][weight]
+            x[n] += danglesum * dangling_weights[n] + (1.0 - alpha) * p[n]
         # check convergence, l1 norm
         err = sum([abs(x[n] - xlast[n]) for n in x])
         if err < N*tol:
             return x
     raise NetworkXError('pagerank: power iteration failed to converge '
                         'in %d iterations.' % max_iter)
+
+
 
 def pagerank2(G, alpha=0.85, personalization=None,
              max_iter=100, tol=1.0e-6, nstart=None, weight='weight',
@@ -92,7 +91,7 @@ def pagerank2(G, alpha=0.85, personalization=None,
 
     # Create a copy in (right) stochastic form
     W = nx.stochastic_graph(D, weight=weight)
-    N = W.number_of_nodes()
+    N = 1#W.number_of_nodes()
 
     # Choose fixed starting vector if not given
     if nstart is None:
@@ -161,9 +160,11 @@ def getScore(G, dangling=True):
         degree = [d if d[1] > 0 else (d[0], 1) for d in degree]
         previous.append('=>'.join(['{}=>'.format(t[0]) * t[1] for t in degree]))
         X = buildTfIdf(previous) if dangling else None
-    calculated_page_rank = pagerank2(G,dangling=X)
-    nodes = {key: calculated_page_rank[key]*100 for key in calculated_page_rank.keys()}
+    #print(X)
+    calculated_page_rank = pagerank(G,personalization=X)
+    nodes = {key: 10*calculated_page_rank[key] for key in calculated_page_rank.keys()}
     nodes = sorted(nodes.items(), key=operator.itemgetter(1), reverse=True)
+    #print(nodes)
     return nodes
 
 def mGraph(tweets):

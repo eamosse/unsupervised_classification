@@ -161,12 +161,12 @@ def process(opts):
         #removed candidates that have a node corresponding to the center of an event
         log.debug("Pruning the graph")
         for i,elem in enumerate(res):
-            if 'exist' in elem or 'ignore' in elem:
-                continue
             entities1 = initialGraph.neighbors(elem['center'][0])
+            if 'exist' in elem or 'ignore' in elem or not entities1:
+                elem['ignore'] = True
+                continue
             exist = False
 
-            count = 0
             for s in seen:
                 if s['center'][0] == elem['center'][0]:
                     exist = True
@@ -180,20 +180,23 @@ def process(opts):
             for j in range(i+1, len(res)):
                 elem2 = res[j]
                 entities2  = initialGraph.neighbors(elem2['center'][0])
+                if not entities2:
+                    elem2['ignore'] = True
+                    elem['exist'] = True
+                    continue
                 exist = False
                 for e1 in entities1:
                     for e2 in entities2:
                         if initialGraph.has_edge(e1, e2) or initialGraph.has_edge(e2, e1) or e1 == e2:
-                            count += 1
-                            if count / (len(entities1) + len(entities2)):
-                                exist = True
-                                break
+                            elem['tweets'].extend(elem2['tweets'])
+                            exist = True
+                            break
+
                     if exist:
                         elem2['ignore'] = True
                         if 'exist' in elem2:
                             elem['exist'] = True
                         break
-
 
         res = [elem for elem in res if 'ignore' not in elem]
         log.debug("Pruning detected events")
@@ -221,7 +224,7 @@ def process(opts):
                 continue"""
             tweets = r['tweets']
             log.debug (tweets)
-            if len(tweets) < 4: # or len(r['pred']) <=2 or (len(r['succ']) <=2)) and len(r['tweets']) < 10:
+            if len(tweets) < 10: # or len(r['pred']) <=2 or (len(r['succ']) <=2)) and len(r['tweets']) < 10:
                 continue
 
             #print(day, tweets)

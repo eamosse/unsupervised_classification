@@ -164,22 +164,30 @@ def process(opts):
             entities1 = initialGraph.neighbors(elem['center'][0])
             if 'exist' in elem or 'ignore' in elem or not entities1:
                 elem['ignore'] = True
+                elem['exist'] = True
                 continue
             exist = False
 
             for s in seen:
-                if s['center'][0] == elem['center'][0]:
+                if s['center'][0] == elem['center'][0] or len(set(s['keys']).intersection(set(elem['keys']))) > 2:
+                    elem['exist'] = True
+                    elem['ignore'] = True
+                    s['tweets'].extend(elem['tweets'])
                     exist = True
                     break
 
             if exist:
-                elem['exist'] = True
-                elem['ignore'] = True
                 continue
 
-            """for j in range(i+1, len(res)):
+            for j in range(i+1, len(res)):
                 elem2 = res[j]
-                entities2  = initialGraph.neighbors(elem2['center'][0])
+                if len(set(elem['keys']).intersection(elem2['keys'])) > 1:
+                    elem2['ignore'] = True
+                    elem2['exist'] = True
+                    elem['tweets'].extend(elem2['tweets'])
+                    elem['keys'].extend(elem2['keys'])
+
+                """entities2  = initialGraph.neighbors(elem2['center'][0])
                 if not entities2:
                     elem2['ignore'] = True
                     elem['exist'] = True
@@ -229,7 +237,9 @@ def process(opts):
                 continue
 
             #print(day, tweets)
+            log.debug("Generating event description")
             text = generateDefinition(tweets) #
+            log.debug("Getting GT")
             event = AnnotationHelper.groundTruthEvent(collection,tweets)
             if not 'exist' in r:
                 if event :
@@ -272,7 +282,7 @@ if __name__ == '__main__':
 
 
     parser = OptionParser('''%prog -o ontology -t type -f force ''')
-    parser.add_option('-n', '--negative', dest='ne', default=100000, type=int)
+    parser.add_option('-n', '--negative', dest='ne', default=10000, type=int)
     parser.add_option('-t', '--tmin', dest='tmin', default=1, type=int)
     parser.add_option('-w', '--wmin', dest='wmin', default=3, type=int)
     parser.add_option('-s', '--smin', dest='smin', default=0.02, type=float)

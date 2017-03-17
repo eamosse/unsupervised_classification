@@ -74,6 +74,17 @@ def saveRelevent(file):
                 del event[0]['_id']
                 db.update("annotation_unsupervised",condition={"id":t[1]}, value=event[0])
 
+
+def removeDupllicate():
+    observed = []
+    tweets = db.find("non_event")
+    tweets = sorted(tweets, key=lambda k: len(k['text']), reverse=True)
+    for t in tweets:
+        vals = [i for i in observed if i['text'] == t['text'] or t['text'] in i['text']]
+        if not vals:
+            observed.append(t)
+    db.insert("non_event_tweets",observed)
+
 def parseFile(folder):
     for f in os.listdir(folder):
         log.debug("Parsing file {}".format(f))
@@ -142,7 +153,7 @@ def parseFile(folder):
 
 
 if __name__ == '__main__':
-    update()
+    removeDupllicate()
 
     #saveRelevent(opts.relevant)
     #parseFile(opts.folder)

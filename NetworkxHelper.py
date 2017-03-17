@@ -70,12 +70,43 @@ Merge edges which nodes co-occur in a single node
 """
 def mergeNodes(initialGraph):
     nodes = initialGraph.nodes(data=True)
-    #nodes = [n for n in nodes if len(n[0].split()) > 1]
+    nodes = [n for n in nodes if len(n[0].split()) > 1]
     for node in nodes:
+        deg = initialGraph.degree(node[0])
         ng = ngrams(node[0].split(), 2)
         for n in ng:
-            if initialGraph.has_edge(n[0], n[1]) or initialGraph.has_edge(n[1], n[0]):
-                merge_nodes(initialGraph, n, node[0])
+            weight,_from,to = None, None, None
+            if initialGraph.has_edge(n[0], n[1]):
+                weight, _from, to  = initialGraph.get_edge_data(n[0], n[1])['weight'],n[0],n[1]
+            elif initialGraph.has_edge(n[1], n[0]):
+                weight, _from, to = initialGraph.get_edge_data(n[1], n[0])['weight'], n[1], n[0]
+
+            if weight:
+                if weight > deg:
+                    pass
+                    #print("Higher", node[0], n, weight, deg)
+                else:
+                    predecessors = initialGraph.predecessors(_from)
+                    successors = initialGraph.successors(to)
+                    for pred in predecessors:
+                        weight = initialGraph.get_edge_data(pred,_from)
+                        if initialGraph.has_edge(pred, node[0]):
+                            initialGraph.get_edge_data(pred, node[0])['weight'] = initialGraph.get_edge_data(pred, _from)['weight'] + weight['weight']
+                            initialGraph.get_edge_data(pred, node[0])['id'].extend(weight['id'])
+                        else:
+                            initialGraph.add_edge(pred, node[0], attr_dict=weight)
+                    for succ in successors:
+                        weight = initialGraph.get_edge_data(to, succ)
+                        if initialGraph.has_edge(node[0], succ):
+                            initialGraph.get_edge_data(node[0], succ)['weight'] = initialGraph.get_edge_data(to, succ)['weight'] + weight['weight']
+                            initialGraph.get_edge_data(node[0], succ)['id'].extend(weight['id'])
+                        else:
+                            initialGraph.add_edge(node[0],to, attr_dict=weight)
+            else:
+                pass
+                #print("UNIQ",node[0], deg)
+
+    nodes = initialGraph.nodes(data=True)
 
 
 def merge(vals):
@@ -105,14 +136,16 @@ def clean(G, min_weight=3):
     return graphs
 
 def merge_nodes(G, nodes, new_node):
+
     """
     Merges the selected `nodes` of the graph G into one `new_node`,
     meaning that all the edges that pointed to or from one of these
     `nodes` will point to or from the `new_node`.
     attr_dict and **attr are defined as in `G.add_node`.
     """
+    #for n in nodes:
 
-    G.add_node(new_node, entity=True)  # Add the 'merged' node
+    #G.add_node(new_node, entity=True)  # Add the 'merged' node
 
     for n1, n2, data in G.edges(data=True):
         # For all edges related to one of the nodes to merge,
@@ -137,7 +170,7 @@ def topPred(node, G):
 
 
 
-def highestPred(G, node, direct=-1):
+"""def highestPred(G, node, direct=-1):
     nodes = G.predecessors(node) if direct ==-1 else G.successors(node)
     edges = []
     for p in nodes:
@@ -151,9 +184,23 @@ def highestPred(G, node, direct=-1):
             else:
                 edges.append((node, (p,weight['weight']), (pp,ed['weight']), _weight))
     edges.sort(key=operator.itemgetter(3),reverse=True)
+    return edges[0] if edges else edges"""
+
+def highestPred(G, node, direct=-1):
+    nodes = G.predecessors(node) if direct ==-1 else G.successors(node)
+    edges = []
+    for p in nodes:
+        weight = G.get_edge_data(p, node) if direct==-1 else G.get_edge_data(node, p)
+        _nodes = G.predecessors(p) if direct == -1 else G.successors(p)
+        for pp in _nodes:
+            ed = G.get_edge_data(pp, p) if direct == -1 else G.get_edge_data(p, pp)
+            _weight = weight['weight']
+            if direct == -1:
+                edges.append(((pp,ed['weight']),(p,weight['weight']), node,_weight))
+            else:
+                edges.append((node, (p,weight['weight']), (pp,ed['weight']), _weight))
+    edges.sort(key=operator.itemgetter(3),reverse=True)
     return edges[0] if edges else edges
-
-
 
 def topSucc(node, G):
     successors = G.successors(node)
@@ -194,8 +241,10 @@ def createLayout(G):
     return graphviz_layout(G, prog="neato")
 colors = cycle(['blue', 'green', 'brown', 'black','navy', 'turquoise', 'darkorange', 'cornflowerblue', 'teal'])
 
-def display(G, pos):
-    plt.figure(1, figsize=(20, 20))
+def display(G, pos=None):
+    if not pos:
+        pos = createLayout(G)
+    plt.figure(1, figsize=(10, 10))
     if not type(G) is list:
         G = [G]
     # layout graphs with positions using graphviz neato

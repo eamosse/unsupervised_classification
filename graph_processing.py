@@ -10,7 +10,7 @@ collection = "events_annotated"
 log = helper.enableLog()
 #helper.disableLog(log)
 non_events =[]
-previous = []
+#previous = []
 
 ignored = []
 added = []
@@ -68,7 +68,7 @@ def process(opts):
     smin = opts.smin
     total = 0
     gts = utils.gtEvents(limit=1)
-    groups = db.intervales(collection)
+    groups = db.intervales(collection, param="dayOfYear", interval=1)
     initialGraph = nx.DiGraph()
 
     myfile=open('results_{}_{}_{}.csv'.format(tmin, min_weight,smin), 'w')
@@ -121,151 +121,155 @@ def process(opts):
         log.debug("Merging nodes")
         mergeNodes(initialGraph)
         log.debug("Cleaning the graph")
-        clean(initialGraph, min_weight=min_weight)
-        news = []
-        olds = []
-        res = []
-        log.debug("Retrieving nodes")
-        _nodes = initialGraph.nodes(data=True)
-        previous.append('=>'.join([n[0] for n in _nodes]))
-        nodes = [node[0] for node in _nodes if 'entity' in node[1] and node[1]['entity']]
+        gg = clean(initialGraph, min_weight=min_weight)
+        #display(gg, pos=createLayout(initialGraph))
+        for graph in gg :
+            news = []
+            olds = []
+            res = []
+            log.debug("Retrieving nodes")
+            _nodes = graph.nodes(data=True)
+            #previous.append('=>'.join([n[0] for n in _nodes]))
+            nodes = [node[0] for node in _nodes if 'entity' in node[1] and node[1]['entity']]
 
-        degree = getScore(initialGraph)
+            degree = getScore(graph)
+            #degree = graph.degree()
 
-        degree = [dg for dg in degree if dg[1]>=smin and dg[0] in nodes and dg[0] not in [d[0] for d in dist]]
-        if len(degree) == 0:
-            continue
-
-        log.debug("Ranking nodes")
-        while degree:
-            t = degree[0]
-            predecessors = highestPred( initialGraph,t[0])
-            successors = highestPred(initialGraph,t[0],direct=1)
-            if not predecessors and not successors:
-                degree = [d for d in degree if d[0]!=t[0]]
+            degree = [dg for dg in degree if dg[1]>=smin and dg[0] in nodes and dg[0] not in [d[0] for d in dist]]
+            if len(degree) == 0:
                 continue
 
-            vals = [t[0] for t in predecessors[0:2]] + [t[0]]
-            vals = vals + [t[0] for t in successors[1:3]]
+            log.debug("Ranking nodes")
+            while degree:
+                t = degree[0]
+                predecessors = highestPred( graph,t[0])
+                successors = highestPred(graph,t[0],direct=1)
+                if not predecessors and not successors:
+                    degree = [d for d in degree if d[0]!=t[0]]
+                    continue
 
-            # remove the pred and the succ in the list
-            degree = [d for d in degree if d[0] not in vals]
+                vals = [t[0] for t in predecessors[0:2]] + [t[0]]
+                vals = vals + [t[0] for t in successors[1:3]]
 
-            val = {'keys' : vals, 'center' : t, 'tweets' : []}
+                # remove the pred and the succ in the list
+                degree = [d for d in degree if d[0] not in vals]
 
-            for d in ngrams(vals,2):
-                dd = initialGraph.get_edge_data(d[0], d[1])
-                val['tweets'].extend(dd['id'])
-            res.append(val)
+                val = {'keys' : vals, 'center' : t, 'tweets' : []}
+                #print(vals)
+                for d in ngrams(vals,2):
+                    dd = graph.get_edge_data(d[0], d[1])
+                    val['tweets'].extend(dd['id'])
+                res.append(val)
 
-        #removed candidates that have a node corresponding to the center of an event
-        log.debug("Pruning the graph")
-        for i,elem in enumerate(res):
-            entities1 = initialGraph.neighbors(elem['center'][0])
-            if 'exist' in elem or 'ignore' in elem or not entities1:
-                elem['ignore'] = True
-                elem['exist'] = True
-                continue
-            exist = False
 
-            for s in seen:
-                if s['center'][0] == elem['center'][0] or len(set(s['keys']).intersection(set(elem['keys']))) > 1:
-                    elem['exist'] = True
+            #removed candidates that have a node corresponding to the center of an event
+            log.debug("Pruning the graph")
+            for i,elem in enumerate(res):
+                """entities1 = graph.neighbors(elem['center'][0])
+                if 'exist' in elem or 'ignore' in elem or not entities1:
                     elem['ignore'] = True
-                    s['tweets'].extend(elem['tweets'])
-                    exist = True
-                    break
-
-            if exist:
-                continue
-
-            for j in range(i+1, len(res)):
-                elem2 = res[j]
-                if len(set(elem['keys']).intersection(elem2['keys'])) > 1:
-                    elem2['ignore'] = True
-                    elem2['exist'] = True
-                    elem['tweets'].extend(elem2['tweets'])
-                    elem['keys'].extend(elem2['keys'])
-
-                """entities2  = initialGraph.neighbors(elem2['center'][0])
-                if not entities2:
-                    elem2['ignore'] = True
                     elem['exist'] = True
-                    continue
+                    continue"""
                 exist = False
-                count = 0
-                for e1 in entities1:
-                    for e2 in entities2:
-                        if initialGraph.has_edge(e1, e2) or initialGraph.has_edge(e2, e1) or e1 == e2:
-                            elem['tweets'].extend(elem2['tweets'])
-                            exist = True
-                            break
 
-                    if exist:
-                        elem2['ignore'] = True
-                        if 'exist' in elem2:
-                            elem['exist'] = True
-                        break"""
+                for s in seen:
+                    if s['center'][0] == elem['center'][0] or len(set(s['keys']).intersection(set(elem['keys']))) > 1:
+                        elem['exist'] = True
+                        elem['ignore'] = True
+                        s['tweets'].extend(elem['tweets'])
+                        exist = True
+                        break
 
-        res = [elem for elem in res if 'ignore' not in elem]
-        log.debug("Pruning detected events")
-
-        for i, r in enumerate(res):
-            for j in range(i + 1, len(res)):
-                k = res[j]
-                if 'ignore' in k:
+                if exist:
                     continue
-                intersect= set(r['tweets']).intersection(set(k['tweets']))
-                if len(intersect) > 3:
-                    r['tweets'].extend(k['tweets'])
-                    r['keys'].extend(k['keys'])
-                    k['ignore'] = True
 
-        events = [e for e in res if 'ignore' not in e]
+                for j in range(i+1, len(res)):
+                    elem2 = res[j]
+                    if len(set(elem['keys']).intersection(elem2['keys'])) > 1:
+                        elem2['ignore'] = True
+                        elem2['exist'] = True
+                        elem['tweets'].extend(elem2['tweets'])
+                        elem['keys'].extend(elem2['keys'])
 
-        for i, r in enumerate(res):
-            r['day'] = day
-            r['tweets'] = list(set(r['tweets']))
-            r['keys'] = list(set(r['keys']))
-        # log.debug("==========EVENT==========")
+                    """entities2  = initialGraph.neighbors(elem2['center'][0])
+                    if not entities2:
+                        elem2['ignore'] = True
+                        elem['exist'] = True
+                        continue
+                    exist = False
+                    count = 0
+                    for e1 in entities1:
+                        for e2 in entities2:
+                            if initialGraph.has_edge(e1, e2) or initialGraph.has_edge(e2, e1) or e1 == e2:
+                                elem['tweets'].extend(elem2['tweets'])
+                                exist = True
+                                break
 
-        for i,r in enumerate(events):
-            """tweets = [t for t in r['tweets'].keys()]
-            if not tweets or len(tweets) < 3:
-                continue"""
-            tweets = r['tweets']
-            #log.debug (tweets)
-            if len(tweets) < 10: # or len(r['pred']) <=2 or (len(r['succ']) <=2)) and len(r['tweets']) < 10:
-                continue
+                        if exist:
+                            elem2['ignore'] = True
+                            if 'exist' in elem2:
+                                elem['exist'] = True
+                            break"""
 
-            #print(day, tweets)
-            log.debug("Generating event description")
-            text = generateDefinition(tweets) #
-            log.debug("Getting GT")
-            event = AnnotationHelper.groundTruthEvent(collection,tweets)
-            #log.debug(event)
-            if not 'exist' in r:
-                if event and len(event) == 1:
-                    news.append([day, text, event[0], len(r['tweets']), r['keys']])
-                    for g in gts:
-                        if int(g[0]) == int(event[0]):
-                            g.append(event[0])
-                            break
+            res = [elem for elem in res if 'ignore' not in elem]
+            log.debug("Pruning detected events")
+
+            for i, r in enumerate(res):
+                for j in range(i + 1, len(res)):
+                    k = res[j]
+                    if 'ignore' in k:
+                        continue
+                    intersect= set(r['tweets']).intersection(set(k['tweets']))
+                    if len(intersect) > 3:
+                        r['tweets'].extend(k['tweets'])
+                        r['keys'].extend(k['keys'])
+                        k['ignore'] = True
+
+            events = [e for e in res if 'ignore' not in e]
+
+            for i, r in enumerate(res):
+                r['day'] = day
+                r['tweets'] = list(set(r['tweets']))
+                r['keys'] = list(set(r['keys']))
+            # log.debug("==========EVENT==========")
+
+            for i,r in enumerate(events):
+                """tweets = [t for t in r['tweets'].keys()]
+                if not tweets or len(tweets) < 3:
+                    continue"""
+                tweets = r['tweets']
+                #log.debug (tweets)
+                if len(tweets) < 10: # or len(r['pred']) <=2 or (len(r['succ']) <=2)) and len(r['tweets']) < 10:
+                    continue
+
+                #print(day, tweets)
+                log.debug("Generating event description")
+                text = generateDefinition(tweets) #
+                log.debug("Getting GT")
+                event = AnnotationHelper.groundTruthEvent(collection,tweets)
+                #log.debug(event)
+                if not 'exist' in r:
+                    if event and len(event) == 1:
+                        news.append([day, text, event[0], len(r['tweets']), r['keys']])
+                        for g in gts:
+                            if int(g[0]) == int(event[0]):
+                                g.append(event[0])
+                                break
+                    else:
+                        news.append(
+                            [day, text, "-1", len(r['tweets']), r['keys']])
+                        gts.append(['-1'])
                 else:
-                    news.append(
-                        [day, text, "-1", len(r['tweets']), r['keys']])
-                    gts.append(['-1'])
-            else:
-                olds.append([day,text,r['event'], len(tweets)])
+                    olds.append([day,text,r['event'], len(tweets)])
 
-            r['event'] = event[0] if event else -1
+                r['event'] = event[0] if event else -1
 
-            initialGraph.remove_nodes_from(r['keys'])
-            seen.append(r)
+                graph.remove_nodes_from(r['keys'])
+                seen.append(r)
 
-        print("New Events")
-        tt = tabulate(news, headers=["Day", "Description", "Ground Truth", "#tweets", "Keywords"])
-        print(tt)
+            print("New Events")
+            tt = tabulate(news, headers=["Day", "Description", "Ground Truth", "#tweets", "Keywords"])
+            print(tt)
 
     for gt in gts:
         wr.writerow(gt)
@@ -287,7 +291,7 @@ if __name__ == '__main__':
     parser = OptionParser('''%prog -o ontology -t type -f force ''')
     parser.add_option('-n', '--negative', dest='ne', default=10000, type=int)
     parser.add_option('-t', '--tmin', dest='tmin', default=1, type=int)
-    parser.add_option('-w', '--wmin', dest='wmin', default=3, type=int)
+    parser.add_option('-w', '--wmin', dest='wmin', default=2, type=int)
     parser.add_option('-s', '--smin', dest='smin', default=0.02, type=float)
     #print(res)
     opts, args = parser.parse_args()

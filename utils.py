@@ -75,7 +75,7 @@ def evaluation():
 
 
 
-    scores = [0.02]
+    scores = [0.01,0.02,0.03,0.04]
     results = []
     categories = []
     headers = [['_']]
@@ -84,7 +84,7 @@ def evaluation():
         gt, predicted, correct = 0, 0, 0
         headers[0].append("alpha={}".format(score))
         headers[0].append('')
-        with open("results_30_3_{}.csv".format(score), encoding="utf8") as csvfile:
+        with open("results_1_3_{}.csv".format(score), encoding="utf8") as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             index = 0
 

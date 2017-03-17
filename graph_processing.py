@@ -1,6 +1,7 @@
 import csv
 import helper
 from helper import  TextHelper
+from scipy.spatial.tests.test_kdtree import two_trees_consistency
 from tabulate import tabulate
 import utils
 from optparse import OptionParser
@@ -35,9 +36,6 @@ def dirtyTweets(nb):
 def mSum(arr):
     return sum([t[1] for t in arr])
 
-seen = []
-final = []
-
 def getEntityNodes(nodes,elem):
     res = []
     p = []
@@ -62,6 +60,7 @@ divergence = [3,50]
 dists = []
 tweetsSeen = set()
 def process(opts):
+    seen = []
     ne = opts.ne
     tmin = opts.tmin
     min_weight = opts.wmin
@@ -84,24 +83,22 @@ def process(opts):
         #continue
         #tweets = db.aggregateDate(collection=collection, day=day)
         tweets = db.find(collection,query={"id":{"$in":group['data']}})
-        """if tweets:
-            tweets = tweets[0]['data']
-        else:
-            continue"""
 
         # randomly select nb non event tweets to simulate a real scenario
         non_events = dirtyTweets(ne)
         # merge the event and non_event tweets
         data = tweets + non_events
 
-        random.shuffle(data)
+        data = sorted(data, key=lambda k: len(k['text']), reverse=True)
+
         total += len(data)
         dist = []
 
         #initialGraph.clear()
         log.debug("Building the graph")
         for t in data:
-            if t['text'] in tweetsSeen:
+            vals = [seen for seen in tweetsSeen if t['text'] in seen]
+            if vals:
                 continue
             tweetsSeen.add(t['text'])
             ann = AnnotationHelper.format(t)
@@ -239,7 +236,7 @@ def process(opts):
                     continue"""
                 tweets = r['tweets']
                 #log.debug (tweets)
-                if len(tweets) < 10: # or len(r['pred']) <=2 or (len(r['succ']) <=2)) and len(r['tweets']) < 10:
+                if len(tweets) < 4: # or len(r['pred']) <=2 or (len(r['succ']) <=2)) and len(r['tweets']) < 10:
                     continue
 
                 #print(day, tweets)

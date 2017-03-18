@@ -170,7 +170,7 @@ def process(opts):
                 exist = False
 
                 for s in seen:
-                    if s['center'][0] == elem['center'][0] or len(set(s['keys']).intersection(set(elem['keys']))) > 1:
+                    if s['center'][0] == elem['center'][0]:
                         elem['exist'] = True
                         elem['ignore'] = True
                         s['tweets'].extend(elem['tweets'])
@@ -182,7 +182,7 @@ def process(opts):
 
                 for j in range(i+1, len(res)):
                     elem2 = res[j]
-                    if len(set(elem['keys']).intersection(elem2['keys'])) > 1:
+                    if len(set(elem['keys']).intersection(elem2['keys'])) > 2:
                         elem2['ignore'] = True
                         elem2['exist'] = True
                         elem['tweets'].extend(elem2['tweets'])

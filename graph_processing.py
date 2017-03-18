@@ -24,20 +24,18 @@ visited = set()
 
 dirty = []
 def dirtyTweets(nb):
-    if not dirty:
-        non_events = db.find("non_event")
-        non_events = [event for event in non_events if not str(event['text']).lower().startswith('rt')]
-        non_events = sorted(non_events, key=lambda k: len(k['text']), reverse=True)
-        for tweet in non_events:
-            vals = [seen for seen in dirty if tweet['text'] in seen['text']]
-            if vals:
-                continue
-            dirty.append(tweet)
-
-    random.shuffle(dirty)
-    random.shuffle(dirty)
-    random.shuffle(dirty)
-    return dirty[0:nb]
+    non_events = db.find("non_event")
+    non_events = [event for event in non_events if not str(event['text']).lower().startswith('rt')]
+    non_events = sorted(non_events, key=lambda k: len(k['text']), reverse=True)
+    random.shuffle(non_events)
+    random.shuffle(non_events)
+    non_events=non_events[0:nb]
+    for tweet in non_events:
+        vals = [seen for seen in dirty if tweet['text'] in seen['text']]
+        if vals:
+            continue
+        dirty.append(tweet)
+    return dirty
 
 
 def mSum(arr):

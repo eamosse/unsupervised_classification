@@ -22,15 +22,22 @@ db.connect("tweets_dataset")
 
 visited = set()
 
-
+dirty = []
 def dirtyTweets(nb):
-    global non_events
-    non_events = db.find("non_event")
-    non_events = [event for event in non_events if not event['text'].startswith('rt')]
-    random.shuffle(non_events)
-    random.shuffle(non_events)
-    random.shuffle(non_events)
-    return non_events[0:nb]
+    if not dirty:
+        non_events = db.find("non_event")
+        non_events = [event for event in non_events if not str(event['text']).lower().startswith('rt')]
+        non_events = sorted(non_events, key=lambda k: len(k['text']), reverse=True)
+        for tweet in non_events:
+            vals = [seen for seen in dirty if tweet['text'] in seen['text']]
+            if vals:
+                continue
+            dirty.append(tweet)
+
+    random.shuffle(dirty)
+    random.shuffle(dirty)
+    random.shuffle(dirty)
+    return dirty[0:nb]
 
 
 def mSum(arr):
@@ -89,17 +96,12 @@ def process(opts):
         # merge the event and non_event tweets
         data = tweets + non_events
 
-        data = sorted(data, key=lambda k: len(k['text']), reverse=True)
-
         total += len(data)
         dist = []
 
         #initialGraph.clear()
         log.debug("Building the graph")
         for t in data:
-            vals = [seen for seen in tweetsSeen if t['text'] in seen]
-            if vals:
-                continue
             tweetsSeen.add(t['text'])
             ann = AnnotationHelper.format(t)
             if len(ann) == 0:

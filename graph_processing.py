@@ -67,7 +67,7 @@ def process(opts):
     smin = opts.smin
     total = 0
     gts = utils.gtEvents(limit=1)
-    groups = db.intervales(collection, param="dayOfYear", interval=1)
+    groups = db.intervales(collection, param="hour", interval=2)
     initialGraph = nx.DiGraph()
 
     myfile=open('results_{}_{}_{}.csv'.format(tmin, min_weight,smin), 'w')
@@ -286,7 +286,7 @@ if __name__ == '__main__':
 
 
     parser = OptionParser('''%prog -o ontology -t type -f force ''')
-    parser.add_option('-n', '--negative', dest='ne', default=10000, type=int)
+    parser.add_option('-n', '--negative', dest='ne', default=5000, type=int)
     parser.add_option('-t', '--tmin', dest='tmin', default=1, type=int)
     parser.add_option('-w', '--wmin', dest='wmin', default=2, type=int)
     parser.add_option('-s', '--smin', dest='smin', default=0.02, type=float)

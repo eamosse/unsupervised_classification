@@ -210,7 +210,7 @@ def process(opts):
                     continue"""
                 tweets = r['tweets']
                 #log.debug (tweets)
-                if len(tweets) < 10: # or len(r['pred']) <=2 or (len(r['succ']) <=2)) and len(r['tweets']) < 10:
+                if len(tweets) < 10 or len(r['keys']) < 4: # or len(r['pred']) <=2 or (len(r['succ']) <=2)) and len(r['tweets']) < 10:
                     continue
 
                 #print(day, tweets)

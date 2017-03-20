@@ -24,7 +24,6 @@ visited = set()
 
 dirty = []
 def dirtyTweets(nb):
-    return []
     non_events = db.find("non_event")
     non_events = [event for event in non_events if not str(event['text']).lower().startswith('rt')]
     non_events = sorted(non_events, key=lambda k: len(k['text']), reverse=True)
@@ -99,7 +98,6 @@ def process(opts):
         nodes = initialGraph.nodes(data=True)
         for node in nodes:
             node[1]['iteration'] = 1 if not 'iteration' in node[1] else node[1]['iteration'] + 1
-        initialGraph.remove_nodes_from(toDelete)
         #initialGraph.clear()
         log.debug("Building the graph")
         for t in data:

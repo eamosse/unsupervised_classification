@@ -99,7 +99,6 @@ def process(opts):
         nodes = initialGraph.nodes(data=True)
         for node in nodes:
             node[1]['iteration'] = 1 if not 'iteration' in node[1] else node[1]['iteration'] + 1
-        print(toDelete)
         initialGraph.remove_nodes_from(toDelete)
         #initialGraph.clear()
         log.debug("Building the graph")

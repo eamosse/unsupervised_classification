@@ -24,6 +24,7 @@ visited = set()
 
 dirty = []
 def dirtyTweets(nb):
+    return []
     non_events = db.find("non_event")
     non_events = [event for event in non_events if not str(event['text']).lower().startswith('rt')]
     non_events = sorted(non_events, key=lambda k: len(k['text']), reverse=True)
@@ -95,8 +96,11 @@ def process(opts):
         data = tweets + non_events
 
         total += len(data)
-        dist = []
-
+        nodes = initialGraph.nodes(data=True)
+        for node in nodes:
+            node[1]['iteration'] = 1 if not 'iteration' in node[1] else node[1]['iteration'] + 1
+        print(toDelete)
+        initialGraph.remove_nodes_from(toDelete)
         #initialGraph.clear()
         log.debug("Building the graph")
         for t in data:
@@ -113,26 +117,21 @@ def process(opts):
                         parts = ngrams(l[0].split() + l[1].split(), 2)
                         for p in parts:
                             addEdge(initialGraph,p[0],p[1],t['id'])
-
+        del data
         #Rename similar nodes
         log.debug("Merging nodes")
         mergeNodes(initialGraph)
         log.debug("Cleaning the graph")
         gg = clean(initialGraph, min_weight=min_weight)
-        #display(gg, pos=createLayout(initialGraph))
-        for graph in gg :
+         for graph in gg :
             news = []
             olds = []
             res = []
             log.debug("Retrieving nodes")
-            _nodes = graph.nodes(data=True)
-            #previous.append('=>'.join([n[0] for n in _nodes]))
-            nodes = [node[0] for node in _nodes if 'entity' in node[1] and node[1]['entity']]
+            nodes = graph.nodes(data=True)
 
             degree = getScore(graph)
-            #degree = graph.degree()
 
-            degree = [dg for dg in degree if dg[1]>=smin and dg[0] in nodes and dg[0] not in [d[0] for d in dist]]
             if len(degree) == 0:
                 continue
 
@@ -155,6 +154,7 @@ def process(opts):
                 #print(vals)
                 for d in ngrams(vals,2):
                     dd = graph.get_edge_data(d[0], d[1])
+
                     val['tweets'].extend(dd['id'])
                 res.append(val)
 
@@ -162,11 +162,6 @@ def process(opts):
             #removed candidates that have a node corresponding to the center of an event
             log.debug("Pruning the graph")
             for i,elem in enumerate(res):
-                """entities1 = graph.neighbors(elem['center'][0])
-                if 'exist' in elem or 'ignore' in elem or not entities1:
-                    elem['ignore'] = True
-                    elem['exist'] = True
-                    continue"""
                 exist = False
 
                 for s in seen:
@@ -187,27 +182,6 @@ def process(opts):
                         elem2['exist'] = True
                         elem['tweets'].extend(elem2['tweets'])
                         elem['keys'].extend(elem2['keys'])
-
-                    """entities2  = initialGraph.neighbors(elem2['center'][0])
-                    if not entities2:
-                        elem2['ignore'] = True
-                        elem['exist'] = True
-                        continue
-                    exist = False
-                    count = 0
-                    for e1 in entities1:
-                        for e2 in entities2:
-                            if initialGraph.has_edge(e1, e2) or initialGraph.has_edge(e2, e1) or e1 == e2:
-                                elem['tweets'].extend(elem2['tweets'])
-                                exist = True
-                                break
-
-                        if exist:
-                            elem2['ignore'] = True
-                            if 'exist' in elem2:
-                                elem['exist'] = True
-                            break"""
-
             res = [elem for elem in res if 'ignore' not in elem]
             log.debug("Pruning detected events")
 
@@ -261,9 +235,14 @@ def process(opts):
 
                 r['event'] = event[0] if event else -1
 
-                graph.remove_nodes_from(r['keys'])
+                initialGraph.remove_nodes_from(r['keys'])
                 seen.append(r)
 
+            toDelete = []
+            nodes = initialGraph.nodes(data=True)
+            for node in nodes:
+                if node[1]['iteration'] > 2:
+                    toDelete.append(node[0])
             print("New Events")
             tt = tabulate(news, headers=["Day", "Description", "Ground Truth", "#tweets", "Keywords"])
             print(tt)

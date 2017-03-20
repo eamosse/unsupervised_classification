@@ -238,7 +238,7 @@ def process(opts):
             toDelete = []
             nodes = initialGraph.nodes(data=True)
             for node in nodes:
-                if node[1]['iteration'] > 2:
+                if 'iteration' in node[1] and node[1]['iteration'] > 2:
                     toDelete.append(node[0])
             print("New Events")
             tt = tabulate(news, headers=["Day", "Description", "Ground Truth", "#tweets", "Keywords"])

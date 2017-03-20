@@ -123,7 +123,7 @@ def process(opts):
         mergeNodes(initialGraph)
         log.debug("Cleaning the graph")
         gg = clean(initialGraph, min_weight=min_weight)
-         for graph in gg :
+        for graph in gg :
             news = []
             olds = []
             res = []

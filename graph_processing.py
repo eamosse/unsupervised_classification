@@ -156,6 +156,7 @@ def process(opts):
 
                     val['tweets'].extend(dd['id'])
                 res.append(val)
+                graph.remove_nodes_from(vals)
 
 
             #removed candidates that have a node corresponding to the center of an event
@@ -209,7 +210,7 @@ def process(opts):
                     continue"""
                 tweets = r['tweets']
                 #log.debug (tweets)
-                if len(tweets) < 4: # or len(r['pred']) <=2 or (len(r['succ']) <=2)) and len(r['tweets']) < 10:
+                if len(tweets) < 10: # or len(r['pred']) <=2 or (len(r['succ']) <=2)) and len(r['tweets']) < 10:
                     continue
 
                 #print(day, tweets)
@@ -267,7 +268,7 @@ if __name__ == '__main__':
     parser.add_option('-n', '--negative', dest='ne', default=10000, type=int)
     parser.add_option('-t', '--tmin', dest='tmin', default=1, type=int)
     parser.add_option('-w', '--wmin', dest='wmin', default=2, type=int)
-    parser.add_option('-s', '--smin', dest='smin', default=0.02, type=float)
+    parser.add_option('-s', '--smin', dest='smin', default=0.5, type=float)
     #print(res)
     opts, args = parser.parse_args()
     process(opts)

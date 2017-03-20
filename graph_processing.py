@@ -126,8 +126,10 @@ def process(opts):
             res = []
             log.debug("Retrieving nodes")
             nodes = graph.nodes(data=True)
+            nodes= [n[0] for n in nodes if 'entity' in n[1] and n[1]['entity']]
 
             degree = getScore(graph)
+            degree =[d for d in degree if d[0] in nodes]
 
             if len(degree) == 0:
                 continue

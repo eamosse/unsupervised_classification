@@ -72,7 +72,7 @@ def process(opts):
     smin = opts.smin
     total = 0
     gts = utils.gtEvents(limit=1)
-    groups = db.intervales(collection, param="dayOfYear", interval=1)
+    groups = db.intervales(collection, param="hour", interval=1)
     initialGraph = nx.DiGraph()
 
     myfile=open('results_{}_{}_{}.csv'.format(tmin, min_weight,smin), 'w')
@@ -117,9 +117,11 @@ def process(opts):
         del data
         #Rename similar nodes
         log.debug("Merging nodes")
-        mergeNodes(initialGraph)
+        #mergeNodes(initialGraph)
         log.debug("Cleaning the graph")
         gg = clean(initialGraph, min_weight=min_weight)
+        #gg = [initialGraph]
+        #display(initialGraph)
         for graph in gg :
             news = []
             olds = []
@@ -129,11 +131,30 @@ def process(opts):
             nodes= [n[0] for n in nodes if 'entity' in n[1] and n[1]['entity']]
 
             degree = getScore(graph)
-            degree =[d for d in degree if d[0] in nodes]
+            degree =[d for d in degree if d[0] in nodes and d[1] >= smin]
 
             if len(degree) == 0:
                 continue
+            candidates = {}
+            #merge any nodes that are connected
+            """visited = []
+            for i, deg in enumerate(degree):
+                if deg[0] in visited:
+                    continue
+                visited.append(deg[0])
 
+                candidates[deg[0]] = [deg[0]]
+
+                for j in range(i+1, len(degree)):
+                    deg1 = degree[j]
+                    if deg1[0] in visited:
+                        continue
+                    visited.append(deg1[0])
+                    if initialGraph.has_edge(deg[0], deg1[0]) :
+                        candidates[deg[0]].append((deg1[0], initialGraph.get_edge_data(deg[0], deg1[0])['weight']))
+                    if initialGraph.has_edge(deg1[0], deg[0]):
+                        candidates[deg[0]].append((deg1[0], initialGraph.get_edge_data(deg1[0], deg[0])['weight']))
+            print(candidates)"""
             log.debug("Ranking nodes")
             while degree:
                 t = degree[0]
@@ -142,21 +163,26 @@ def process(opts):
                 if not predecessors and not successors:
                     degree = [d for d in degree if d[0]!=t[0]]
                     continue
-
-                vals = [t[0] for t in predecessors[0:2]] + [t[0]]
-                vals = vals + [t[0] for t in successors[1:3]]
+                toRem = [(pred[0],t[0]) for pred in predecessors]
+                toRem.extend([(t[0], succ[0]) for succ in successors])
+                vals = [t[0] for t in predecessors] + [t[0]]
+                vals = vals + [t[0] for t in successors]
 
                 # remove the pred and the succ in the list
                 degree = [d for d in degree if d[0] not in vals]
 
                 val = {'keys' : vals, 'center' : t, 'tweets' : []}
                 #print(vals)
-                for d in ngrams(vals,2):
+                for d in toRem:
                     dd = graph.get_edge_data(d[0], d[1])
-
                     val['tweets'].extend(dd['id'])
+                for d in predecessors + successors:
+                    if graph.degree(d[0]) == 1:
+                        print(d[0], 'is only connected to ', t[0])
+                        toRem.append((d[0], t[0]) if graph.has_edge(d[0], t[0]) else (t[0], d[0]))
+                        val['tweets'].extend(graph.get_edge_data(d[0], t[0])['id'] if graph.has_edge(d[0], t[0]) else  graph.get_edge_data(t[0], d[0])['id'])
                 res.append(val)
-                graph.remove_nodes_from(vals)
+                graph.remove_edges_from(toRem)
 
 
             #removed candidates that have a node corresponding to the center of an event
@@ -165,7 +191,7 @@ def process(opts):
                 exist = False
 
                 for s in seen:
-                    if s['center'][0] == elem['center'][0]:
+                    if s['center'][0] == elem['center'][0] or len(set(elem['keys']).intersection(s['keys'])) > 1:
                         elem['exist'] = True
                         elem['ignore'] = True
                         s['tweets'].extend(elem['tweets'])
@@ -177,15 +203,36 @@ def process(opts):
 
                 for j in range(i+1, len(res)):
                     elem2 = res[j]
-                    if len(set(elem['keys']).intersection(elem2['keys'])) > 2:
+                    k1 = [e for e in elem['keys'] if e in nodes]
+                    k2 = [e for e in elem2['keys'] if e in nodes]
+                    if len(set(k1).intersection(set(k2))) > 1:
                         elem2['ignore'] = True
                         elem2['exist'] = True
                         elem['tweets'].extend(elem2['tweets'])
-                        elem['keys'].extend(elem2['keys'])
+                        #elem['keys'].extend(elem2['keys'])
+                    """
+                    count = 0
+                    for e in elem['keys'] :
+                        for ee in elem2['keys']:
+                            if graph.has_edge(e, ee) or graph.has_edge(ee, e):
+                                count +=1
+                                if count > 2:
+                                    elem2['ignore'] = True
+                                    elem2['exist'] = True
+                                    elem['tweets'].extend(elem2['tweets'])
+                                    elem['keys'].extend(elem2['keys'])
+                                    break
+                        if count > 2:
+                            break
+                    if len(set(elem['keys']).intersection(elem2['keys'])) > 1:
+                        elem2['ignore'] = True
+                        elem2['exist'] = True
+                        elem['tweets'].extend(elem2['tweets'])
+                        elem['keys'].extend(elem2['keys'])"""
             res = [elem for elem in res if 'ignore' not in elem]
             log.debug("Pruning detected events")
 
-            for i, r in enumerate(res):
+            """for i, r in enumerate(res):
                 for j in range(i + 1, len(res)):
                     k = res[j]
                     if 'ignore' in k:
@@ -194,7 +241,7 @@ def process(opts):
                     if len(intersect) > 3:
                         r['tweets'].extend(k['tweets'])
                         r['keys'].extend(k['keys'])
-                        k['ignore'] = True
+                        k['ignore'] = True"""
 
             events = [e for e in res if 'ignore' not in e]
 
@@ -210,7 +257,7 @@ def process(opts):
                     continue"""
                 tweets = r['tweets']
                 #log.debug (tweets)
-                if len(tweets) < 10 or len(r['keys']) < 4: # or len(r['pred']) <=2 or (len(r['succ']) <=2)) and len(r['tweets']) < 10:
+                if len(tweets) < 4 or len(r['keys']) < 4: # or len(r['pred']) <=2 or (len(r['succ']) <=2)) and len(r['tweets']) < 10:
                     continue
 
                 #print(day, tweets)
@@ -218,6 +265,7 @@ def process(opts):
                 text = generateDefinition(tweets) #
                 log.debug("Getting GT")
                 event = AnnotationHelper.groundTruthEvent(collection,tweets)
+                #r['keys'] = [(rr, graph.degree(rr)) for rr in r['keys']]
                 #log.debug(event)
                 if not 'exist' in r:
                     if event and len(event) == 1:
@@ -267,8 +315,8 @@ if __name__ == '__main__':
     parser = OptionParser('''%prog -o ontology -t type -f force ''')
     parser.add_option('-n', '--negative', dest='ne', default=10000, type=int)
     parser.add_option('-t', '--tmin', dest='tmin', default=1, type=int)
-    parser.add_option('-w', '--wmin', dest='wmin', default=2, type=int)
-    parser.add_option('-s', '--smin', dest='smin', default=0.5, type=float)
+    parser.add_option('-w', '--wmin', dest='wmin', default=3, type=int)
+    parser.add_option('-s', '--smin', dest='smin', default=0.05, type=float)
     #print(res)
     opts, args = parser.parse_args()
     process(opts)

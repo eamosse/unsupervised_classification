@@ -48,6 +48,7 @@ def addEdge( G, u, v, tweet, entity=-1):
     u = u.lower()
     v = v.lower()
 
+
     u = TextHelper.lemmatize(u)
     v = TextHelper.lemmatize(v)
     #G = nx.DiGraph()
@@ -177,6 +178,11 @@ def topPred(node, G):
 
 def highestPred(G, node, direct=-1):
     nodes = G.predecessors(node) if direct ==-1 else G.successors(node)
+    #G = nx.DiGraph()
+    nodes = [(pred,G.get_edge_data(pred,node)['weight'] if direct == -1 else G.get_edge_data(node,pred)['weight']) for pred in nodes]
+    nodes.sort(key=operator.itemgetter(1), reverse=True)
+    return nodes [0:2]
+    """
     edges = []
     for p in nodes:
         weight = G.get_edge_data(p, node) if direct==-1 else G.get_edge_data(node, p)
@@ -189,7 +195,7 @@ def highestPred(G, node, direct=-1):
             else:
                 edges.append((node, (p,weight['weight']), (pp,ed['weight']), _weight))
     edges.sort(key=operator.itemgetter(3),reverse=True)
-    return edges[0] if edges else edges
+    return edges[0] if edges else edges"""
 
 """def highestPred(G, node, direct=-1):
     nodes = G.predecessors(node) if direct ==-1 else G.successors(node)

@@ -90,7 +90,7 @@ def getScore(G, dangling=True):
         previous.append('=>'.join(['{}=>'.format(t[0]) * t[1] for t in degree]))
         X = buildTfIdf(previous) if dangling else None
     #print(X)
-    calculated_page_rank = nx.pagerank(G) #pagerank(G,personalization=X)
+    calculated_page_rank = pagerank(G,personalization=X)
     nodes = {key: 100*calculated_page_rank[key] for key in calculated_page_rank.keys()}
     nodes = sorted(nodes.items(), key=operator.itemgetter(1), reverse=True)
     #print(nodes)

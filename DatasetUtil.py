@@ -62,7 +62,9 @@ def reconciliate():
     db.insert("events", tweets)
 
 def update():
-    tweets  = db.find("events_annotated")
+    tweets  = db.find("nevents")
+    db.insert("all_tweets", tweets)
+    tweets = db.find("events_annotated")
     db.insert("all_tweets", tweets)
 
 def saveRelevent(file):
@@ -153,7 +155,7 @@ def parseFile(folder):
 
 
 if __name__ == '__main__':
-    removeDupllicate()
+    update()
 
     #saveRelevent(opts.relevant)
     #parseFile(opts.folder)

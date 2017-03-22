@@ -166,12 +166,12 @@ def process(opts):
             for i,elem in enumerate(res):
                 exist = False
 
-                """for s in seen:
+                for s in seen:
                     if len(set(elem['keys']).intersection(s['keys'])) > 2:
                         elem['ignore'] = True
                         s['tweets'].extend(elem['tweets'])
                         exist = True
-                        break"""
+                        break
 
                 if exist:
                     continue
@@ -203,7 +203,7 @@ def process(opts):
                     continue"""
                 tweets = r['tweets']
                 #log.debug (tweets)
-                if len(tweets) < 4 or len(r['keys']) < 2: # or len(r['pred']) <=2 or (len(r['succ']) <=2)) and len(r['tweets']) < 10:
+                if len(tweets) < 10 or len(r['keys']) < 2: # or len(r['pred']) <=2 or (len(r['succ']) <=2)) and len(r['tweets']) < 10:
                     continue
 
                 #print(day, tweets)

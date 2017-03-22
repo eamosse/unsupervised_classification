@@ -160,7 +160,6 @@ def process(opts):
                 res.append(val)
                 graph.remove_edges_from(toRem)
 
-
             #removed candidates that have a node corresponding to the center of an event
             log.debug("Pruning the graph")
             for i,elem in enumerate(res):

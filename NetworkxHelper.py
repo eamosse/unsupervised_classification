@@ -147,6 +147,10 @@ def clean(G, min_weight=2):
     graphs = [g for g in graphs if nx.number_of_nodes(g) > 1]
     return graphs
 
+def get_components(G):
+    components = sorted(nx.strongly_connected_component_subgraphs(G), key = len, reverse = True)
+    return components
+
 def merge_nodes(G, nodes, new_node):
 
     """
@@ -187,7 +191,7 @@ def highestPred(G, node, direct=-1):
     #G = nx.DiGraph()
     nodes = [(pred,G.get_edge_data(pred,node)['weight'] if direct == -1 else G.get_edge_data(node,pred)['weight']) for pred in nodes]
     nodes.sort(key=operator.itemgetter(1), reverse=True)
-    return nodes[0:2]
+    return nodes
     """
     edges = []
     for p in nodes:

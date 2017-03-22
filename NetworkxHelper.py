@@ -42,33 +42,39 @@ def hasNode(G, nn):
             #return G, nn
     return G, nn
 
-def addEdge( G, u, v, tweet, entity=-1):
+def add_node(G, node, entity):
+    """uu = [n for n in G.nodes(data=True) if n[0] == node]
+    if uu and uu[0] == node:
+        entity = uu[1]['entity'] or node in entity
+        G.add_node(node, entity=entity)
+    else:"""
+    G.add_node(node, entity=node in entity)
+
+def addEdge( G, u, v, tweet, entity=[]):
     if u == v or u in v or v in u or len(u)<2 or len(v) < 2:
         return
-    u = u.lower()
-    v = v.lower()
 
-
+    entity = [TextHelper.lemmatize(e) for e in entity]
     u = TextHelper.lemmatize(u)
     v = TextHelper.lemmatize(v)
-    #G = nx.DiGraph()
+    weight = 2 if u in entity or v in entity else 1
 
+    add_node(G,u,entity)
+    add_node(G,v,entity)
+    #G = nx.DiGraph()
 
 
     if G.has_edge(u,v):
         if tweet not in G.get_edge_data(u, v)['id']:
-            G.get_edge_data(u, v)['weight'] = G.get_edge_data(u, v)['weight'] + 1
+            G.get_edge_data(u, v)['weight'] = G.get_edge_data(u, v)['weight'] + weight
             G.get_edge_data(u, v)['id'].append(tweet)
 
     elif G.has_edge(v, u):
         if tweet not in G.get_edge_data(v, u)['id']:
-            G.get_edge_data(v, u)['weight'] = G.get_edge_data(v, u)['weight'] + 1
+            G.get_edge_data(v, u)['weight'] = G.get_edge_data(v, u)['weight'] + weight
             G.get_edge_data(v, u)['id'].append(tweet)
-
     else:
-        G.add_node(u, entity=entity==0 or entity==2)
-        G.add_node(v, entity=entity==1 or entity ==2)
-        G.add_edge(u,v,attr_dict={'weight':1, 'id':[tweet]})
+        G.add_edge(u,v,attr_dict={'weight':weight, 'id':[tweet]})
 
 
 """
@@ -126,7 +132,7 @@ def merge(vals):
                 vals[i] = (vals[i][0], vals[i][1]+vals[j][1])
     vals.sort(key=operator.itemgetter(1), reverse=True)
 
-def clean(G, min_weight=3):
+def clean(G, min_weight=2):
     toRem= []
     for n, nbrs in G.adjacency_iter():
         for nbr, eattr in nbrs.items():
@@ -181,7 +187,7 @@ def highestPred(G, node, direct=-1):
     #G = nx.DiGraph()
     nodes = [(pred,G.get_edge_data(pred,node)['weight'] if direct == -1 else G.get_edge_data(node,pred)['weight']) for pred in nodes]
     nodes.sort(key=operator.itemgetter(1), reverse=True)
-    return nodes [0:2]
+    return nodes[0:2]
     """
     edges = []
     for p in nodes:
@@ -279,7 +285,6 @@ def display(G, pos=None):
 def degrees(G, nbunch=None):
     degree = G.degree(weight='weight', nbunch=nbunch)
     degree = [d for d in degree.items()]
-    #{degree = [de for de in degree if not TextHelper.isStopWord(de[0])]
     degree.sort(key=operator.itemgetter(1), reverse=True)
     return degree
 

@@ -75,16 +75,16 @@ def evaluation():
 
 
 
-    scores = [0.01,0.02,0.03,0.04]
+    scores = [0.01,0.02,0.03,0.04,0.05,0.005]
     results = []
     categories = []
     headers = [['_']]
     for score in scores:
-        corrects = []
-        gt, predicted, correct = 0, 0, 0
+        corrects = set()
+        gt, predicted, correct = 506, 0, 0
         headers[0].append("alpha={}".format(score))
         headers[0].append('')
-        with open("results_1_3_{}.csv".format(score), encoding="utf8") as csvfile:
+        with open("results_1_2_{}.csv".format(score), encoding="utf8") as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             index = 0
 
@@ -94,19 +94,16 @@ def evaluation():
                     continue
 
                 if len(r) >= 3:
-                    gt+=1
                     predicted+=1
                     correct+=1
-                    corrects.append(int(r[0]))
-                if len(r) == 2:
-                    gt +=1
+                    corrects.add(int(r[0]))
                 if len(r) == 1:
                     predicted+=1
         precision = correct/predicted
         recall = correct/gt
         fscore = 2*precision*recall/(precision+recall)
         results.append(["alpha={}".format(score), gt, predicted, correct,"%.3f" %precision,"%.3f" %recall,"%.3f" %fscore])
-        cat = perCategory(corrects)
+        cat = perCategory(list(corrects))
         if not categories:
             categories.extend(cat)
         else:

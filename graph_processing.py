@@ -34,19 +34,6 @@ def dirtyTweets(nb):
     non_events = db.find("nevents", limit=nb, skip=current)
     current = nb + current
     return non_events
-    """non_events = [event for event in non_events if not str(event['text']).lower().startswith('rt')]
-    non_events = sorted(non_events, key=lambda k: len(k['text']), reverse=True)
-
-    random.shuffle(non_events)
-    random.shuffle(non_events)
-    non_events=non_events[0:nb]
-    for tweet in non_events:
-        vals = [seen for seen in dirty if tweet['text'] in seen['text']]
-        if vals:
-            continue
-        dirty.append(tweet)
-    return dirty"""
-
 
 def mSum(arr):
     return sum([t[1] for t in arr])
@@ -72,8 +59,6 @@ def getEntityNodes2(elem):
 fOld = open('old.txt','w')
 
 divergence = [3,50]
-dists = []
-tweetsSeen = set()
 def process(opts):
     seen = []
     ne = opts.ne
@@ -82,7 +67,7 @@ def process(opts):
     smin = opts.smin
     total = 0
     gts = utils.gtEvents(limit=1)
-    groups = db.intervales(collection, param="hour", interval=1)
+    groups = db.intervales(collection, param="hour", interval=2)
     initialGraph = nx.DiGraph()
 
     myfile=open('results_{}_{}_{}.csv'.format(tmin, min_weight,smin), 'w')
@@ -108,30 +93,33 @@ def process(opts):
         nodes = initialGraph.nodes(data=True)
         for node in nodes:
             node[1]['iteration'] = 1 if not 'iteration' in node[1] else node[1]['iteration'] + 1
-        #initialGraph.clear()
+        initialGraph.clear()
         log.debug("Building the graph")
         for t in data:
-            tweetsSeen.add(t['text'])
             ann = AnnotationHelper.format(t)
             if len(ann) == 0:
                 ignored.append(t['id'])
+            labels = [a['label'] for a in ann if 'label' in a]
             for a in ann:
                 for l in a['edges']:
                     if len(l[0].split()) < 3 and len(l[1].split()) < 3:
-                        addEdge(initialGraph, l[0], l[1], t['id'], l[2])
-                    else:#nodes that have more than two tokens are most likely wrong NE identified by the NER tool(e.g. sandusky sentenced jail)
-                        #thus, we split both initial nodes to create new edges
+                        addEdge(initialGraph, l[0], l[1], t['id'], labels)
+                    else:  # nodes that have more than two tokens are most likely wrong NE identified by the NER tool(e.g. sandusky sentenced jail)
+                        # thus, we split both initial nodes to create new edges
                         parts = ngrams(l[0].split() + l[1].split(), 2)
                         for p in parts:
-                            addEdge(initialGraph,p[0],p[1],t['id'])
+                            addEdge(initialGraph, p[0], p[1], t['id'], labels)
         del data
         #Rename similar nodes
         log.debug("Merging nodes")
-        #mergeNodes(initialGraph)
+        mergeNodes(initialGraph)
         log.debug("Cleaning the graph")
         gg = clean(initialGraph, min_weight=min_weight)
         #gg = [initialGraph]
         #display(initialGraph)
+        __nodes = degrees(initialGraph, nbunch=initialGraph.nodes())
+        __nodes = [d if d[1] > 0 else (d[0], 1) for d in __nodes]
+
         for graph in gg :
             news = []
             olds = []
@@ -139,8 +127,7 @@ def process(opts):
             log.debug("Retrieving nodes")
             nodes = graph.nodes(data=True)
             nodes= [n[0] for n in nodes if 'entity' in n[1] and n[1]['entity']]
-
-            degree = getScore(graph)
+            degree = getScore(graph,__nodes, dangling=True)
             degree =[d for d in degree if d[0] in nodes and d[1] >= smin]
 
             if len(degree) == 0:
@@ -179,12 +166,12 @@ def process(opts):
             for i,elem in enumerate(res):
                 exist = False
 
-                for s in seen:
-                    if len(set(elem['keys']).intersection(s['keys'])) > 0:
+                """for s in seen:
+                    if len(set(elem['keys']).intersection(s['keys'])) > 2:
                         elem['ignore'] = True
                         s['tweets'].extend(elem['tweets'])
                         exist = True
-                        break
+                        break"""
 
                 if exist:
                     continue
@@ -196,53 +183,11 @@ def process(opts):
                     if len ((set(k1)).intersection(set(k2))) > 1:
                         elem2['ignore'] = True
                         elem['tweets'].extend(elem2['tweets'])
-                        elem['keys'].extend(elem2['keys'])
-                        break
-                    """for k in k1:
-                        for kk in k2:
-                            if graph.has_edge(k, kk) or graph.has_edge(kk,k):
-                                elem2['ignore'] = True
-                                elem['tweets'].extend(elem2['tweets'])
-                                elem['keys'].extend(elem2['keys'])
-                                exist = True
-                                break
-                        if exist:
-                            break"""
-                    #if len(set(k1).intersection(set(k2))) > 10:
-
                         #elem['keys'].extend(elem2['keys'])
-                    """
-                    count = 0
-                    for e in elem['keys'] :
-                        for ee in elem2['keys']:
-                            if graph.has_edge(e, ee) or graph.has_edge(ee, e):
-                                count +=1
-                                if count > 2:
-                                    elem2['ignore'] = True
-                                    elem2['exist'] = True
-                                    elem['tweets'].extend(elem2['tweets'])
-                                    elem['keys'].extend(elem2['keys'])
-                                    break
-                        if count > 2:
-                            break
-                    if len(set(elem['keys']).intersection(elem2['keys'])) > 1:
-                        elem2['ignore'] = True
-                        elem2['exist'] = True
-                        elem['tweets'].extend(elem2['tweets'])
-                        elem['keys'].extend(elem2['keys'])"""
+                        break
             res = [elem for elem in res if 'ignore' not in elem]
             log.debug("Pruning detected events")
 
-            """for i, r in enumerate(res):
-                for j in range(i + 1, len(res)):
-                    k = res[j]
-                    if 'ignore' in k:
-                        continue
-                    intersect= set(r['tweets']).intersection(set(k['tweets']))
-                    if len(intersect) > 3:
-                        r['tweets'].extend(k['tweets'])
-                        r['keys'].extend(k['keys'])
-                        k['ignore'] = True"""
 
             events = [e for e in res if 'ignore' not in e]
 
@@ -314,10 +259,10 @@ if __name__ == '__main__':
 
 
     parser = OptionParser('''%prog -o ontology -t type -f force ''')
-    parser.add_option('-n', '--negative', dest='ne', default=10000, type=int)
+    parser.add_option('-n', '--negative', dest='ne', default=1000, type=int)
     parser.add_option('-t', '--tmin', dest='tmin', default=1, type=int)
     parser.add_option('-w', '--wmin', dest='wmin', default=2, type=int)
-    parser.add_option('-s', '--smin', dest='smin', default=0.01, type=float)
+    parser.add_option('-s', '--smin', dest='smin', default=0.005, type=float)
     #print(res)
     opts, args = parser.parse_args()
     process(opts)

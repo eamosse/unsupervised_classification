@@ -82,16 +82,15 @@ def sumEdges(G, node, direct=1):
     return tot
 
 previous = []
-def getScore(G, dangling=True):
+def getScore(G, degree, dangling=True):
     X = None
     if dangling:
-        degree = degrees(G, nbunch=G.nodes())
-        degree = [d if d[1] > 0 else (d[0], 1) for d in degree]
+
         previous.append('=>'.join(['{}=>'.format(t[0]) * t[1] for t in degree]))
-        X = buildTfIdf(previous) if dangling else None
+        X = buildTfIdf(previous[-24:]) if dangling else None
     #print(X)
     calculated_page_rank = pagerank(G,personalization=X)
-    nodes = {key: 100*calculated_page_rank[key] for key in calculated_page_rank.keys()}
+    nodes = {key: calculated_page_rank[key] for key in calculated_page_rank.keys()}
     nodes = sorted(nodes.items(), key=operator.itemgetter(1), reverse=True)
     #print(nodes)
     return nodes

@@ -85,13 +85,39 @@ def generateDefinition(ids):
 def flow_func(G,node1,node2):
     return G.get_edge_data(node1, node2)['weight']
 
+
+def add_node(G, node, entity):
+    uu = [n for n in G.nodes(data=True) if n[0] == node]
+    print(uu)
+    if uu and uu[0] == node:
+        entity = uu[1]['entity'] or node == entity
+        G.add_node(node, entity=entity)
+    else:
+        G.add_node(node, entity=node == entity)
+
 if __name__ == '__main__':
-    tweets = db.find(collection="annotation_unsupervised", query={'event_id':383}) + dirtyTweets(10000)
+    """tweets = db.find(collection="all_tweets", query={'event_id':3})
     texts = ' ' .join(t['text'] for t in tweets)
+    print(extractSentences(texts))"""
 
 
+    print('text'.lower())
     G = nx.DiGraph()
-    for tweet in tweets:
+    G.add_node("test")
+    print(G.nodes(data=True))
+    G.add_node("test")
+    G.add_node("test")
+    G.add_node("testss")
+    G.add_node("tests")
+    G.add_node("test", entity = True )
+    print(G.nodes(data=True))
+
+
+    nodes = [n for n in G.nodes(data=True) if n[0] == 'test']
+    print(nodes)
+    """if 'test' in nodes:
+        test = nodes['test']"""
+    """for tweet in tweets:
         ann = AnnotationHelper.format(tweet)
         for a in ann:
             for l in a['edges']:
@@ -113,4 +139,4 @@ if __name__ == '__main__':
 
             sub.append(g)
         G = sub
-    display(G,pos=pos)
+    display(G,pos=pos)"""

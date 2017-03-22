@@ -166,7 +166,7 @@ def process(opts):
                 exist = False
 
                 for s in seen:
-                    if len(set(elem['keys']).intersection(s['keys'])) > 2:
+                    if len(set(elem['keys']).intersection(s['keys'])) >= 2:
                         elem['ignore'] = True
                         s['tweets'].extend(elem['tweets'])
                         exist = True
@@ -179,7 +179,7 @@ def process(opts):
                     elem2 = res[j]
                     k1 = [e for e in elem['keys'] if e in nodes]
                     k2 = [e for e in elem2['keys'] if e in nodes]
-                    if len ((set(k1)).intersection(set(k2))) > 1:
+                    if len ((set(k1)).intersection(set(k2))) >= 1:
                         elem2['ignore'] = True
                         elem['tweets'].extend(elem2['tweets'])
                         #elem['keys'].extend(elem2['keys'])

@@ -75,7 +75,7 @@ def evaluation():
 
 
 
-    scores = [0.01,0.02,0.03,0.04,0.05,0.005]
+    scores = [0.001,0.0015,0.0020,0.0025]
     results = []
     categories = []
     headers = [['_']]

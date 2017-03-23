@@ -56,7 +56,6 @@ def getEntityNodes2(elem):
     return p
 
 
-fOld = open('old.txt','w')
 
 divergence = [3,50]
 dists = []

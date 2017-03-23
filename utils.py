@@ -1,26 +1,13 @@
 from helper import MongoHelper as db
 import csv
 from tabulate import tabulate
+from helper import AnnotationHelper, TextHelper
+from StreamManager import  *
 db.connect("tweets_dataset")
 collection= "events_annotated"
 """
 Do not considere events with less than limit tweets
 """
-def generateGTData(limit=3):
-    myfile = open('groundtruth.csv', 'w')
-    wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-    wr.writerow(["Event", '#Tweets'])
-
-
-
-def gtEvents(limit=1):
-    res = []
-    stat = db.stat(collection)
-    for s in stat:
-        if len(s['data']) >= limit:
-            res.append([s['_id']['event_id'], len(s['data'])])
-    return res
-
 
 def statCategory():
     rrr = gtEvents()
@@ -52,30 +39,13 @@ def statCategory():
 
 
 
-def perCategory(corrects):
-    corrects = set(corrects)
-    pipeline = [
-        {"$group": {"_id": {"category": "$categorie_text"},
-                    "data": {"$addToSet": {'event_id': '$event_id'}}}}]
-    res = db.aggregate("category", pipeline)
-    gts = gtEvents()
-    gts = set([gt[0] for gt in gts])
-    print("GTS", len(gts))
-    res = {r["_id"]["category"]:set([rr['event_id'] for rr in r["data"]]).intersection(gts) for r in res}
-    final = []
-    keys = sorted(res.keys(), reverse=False)
-    for key in keys:
-        correct, total = len(res[key].intersection(corrects)), len(res[key])
-        recall = "%.3f" % (correct/total) if total > 0 else 0
-        d = [key,"E: {} \linebreak[1] R: {}".format(correct,recall) ]
-        final.append(d)
-    return final
+
 
 def evaluation():
 
 
 
-    scores = [0.001,0.0015,0.0020,0.0025]
+    scores = [0.0001,0.0002,0.0003,0.0004,0.0005]
     results = []
     categories = []
     headers = [['_']]
@@ -120,4 +90,3 @@ def evaluation():
 _format = "grid"
 if __name__ == '__main__':
     evaluation()
-    #statCategory()

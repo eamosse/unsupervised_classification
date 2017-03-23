@@ -6,6 +6,7 @@ from helper import TextHelper
 from nltk import ngrams
 import random
 from itertools import cycle
+from helper import symspell
 
 try:
     import pygraphviz
@@ -51,30 +52,38 @@ def add_node(G, node, entity):
     G.add_node(node, entity=node in entity)
 
 def addEdge( G, u, v, tweet, entity=[]):
+    u = u.lower()
+    v = v.lower()
+
     if u == v or u in v or v in u or len(u)<2 or len(v) < 2:
         return
 
-    entity = [TextHelper.lemmatize(e) for e in entity]
-    u = TextHelper.lemmatize(u)
-    v = TextHelper.lemmatize(v)
-    weight = 2 if u in entity or v in entity else 1
+    entity = [e.lower() for e in entity]
+    if u not in entity:
+        if not TextHelper.isInWordNet(u):
+            return
+        u = TextHelper.lemmatize(u)
+    if v not in entity:
+        if not TextHelper.isInWordNet(v):
+            return
+        v = TextHelper.lemmatize(v)
+    weight = 2 if u in entity and v in entity else 1
 
     add_node(G,u,entity)
     add_node(G,v,entity)
-    #G = nx.DiGraph()
 
 
     if G.has_edge(u,v):
-        if tweet not in G.get_edge_data(u, v)['id']:
-            G.get_edge_data(u, v)['weight'] = G.get_edge_data(u, v)['weight'] + weight
-            G.get_edge_data(u, v)['id'].append(tweet)
+        G.get_edge_data(u, v)['weight'] = G.get_edge_data(u, v)['weight'] + weight
+        G.get_edge_data(u, v)['id'].add(tweet)
 
     elif G.has_edge(v, u):
-        if tweet not in G.get_edge_data(v, u)['id']:
-            G.get_edge_data(v, u)['weight'] = G.get_edge_data(v, u)['weight'] + weight
-            G.get_edge_data(v, u)['id'].append(tweet)
+        G.get_edge_data(v, u)['weight'] = G.get_edge_data(v, u)['weight'] + weight
+        G.get_edge_data(v, u)['id'].add(tweet)
     else:
-        G.add_edge(u,v,attr_dict={'weight':weight, 'id':[tweet]})
+        t = set()
+        t.add(tweet)
+        G.add_edge(u,v,attr_dict={'weight':weight, 'id':t})
 
 
 """
@@ -430,3 +439,5 @@ def graph_pruning(dGraph, seen, node, day, nodes):
                 k['ignore'] = True
     res = [elem for elem in res if 'ignore' not in elem or len(elem['center']) > 20 or len(elem['center']) < 3]
     return res
+
+

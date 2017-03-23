@@ -76,6 +76,32 @@ def saveRelevent(file):
                 del event[0]['_id']
                 db.update("annotation_unsupervised",condition={"id":t[1]}, value=event[0])
 
+def clean():
+    db.connect("tweets_dataset")
+    limit, skip = 400, 0
+    while True:
+        res = list(db.find("annotation_python", limit=limit, skip=skip))
+        if not res:
+            break
+        skip+=limit
+        for r in res:
+            annoations = r['annotations']
+            if not annoations:
+                continue
+            ann = []
+            found = False
+            for i, a in enumerate(annoations):
+                for j, b in enumerate(annoations):
+                    if j==i:
+                        continue
+                    if (a['startChar'] >= b['startChar'] and a['endChar'] <= b['endChar']):
+                        found = True
+                        break
+                if not found:
+                    ann.append(a)
+                found = False
+            r['annotations'] = ann
+        db.insert("annotation_purge", res)
 
 def removeDupllicate():
     observed = []

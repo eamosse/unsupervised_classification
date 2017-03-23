@@ -89,7 +89,7 @@ def extract_event_candidates(degree, graph, initialGraph, nodes):
 
 def merge_duplicate_events(res):
     for i, elem in enumerate(res):
-        if 'ignore' in elem or not elem['keys']:
+        if 'ignore' in elem or not elem['keys'].intersection(set(nes)):
             elem['ignore'] = True
             continue
 
@@ -159,7 +159,6 @@ def process(opts):
         __nodes = [d if d[1] > 0 else (d[0], 1) for d in __nodes]
 
         gg = clean(initialGraph, min_weight=min_weight)
-        print(nes)
 
         for graph in gg :
             log.debug("Retrieving nodes")

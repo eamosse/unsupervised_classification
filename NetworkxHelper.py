@@ -55,7 +55,7 @@ def addEdge( G, u, v, tweet, entity=[]):
     u = u.lower()
     v = v.lower()
 
-    if u == v or u in v or v in u or len(u)<2 or len(v) < 2:
+    if u == v or u in v or v in u or len(u)<3 or len(v) < 2:
         return
 
     entity = [e.lower() for e in entity]
@@ -195,13 +195,13 @@ def topPred(node, G):
 
 
 
-def highestPred(G, node, direct=-1):
+"""def highestPred(G, node, direct=-1):
     nodes = G.predecessors(node) if direct ==-1 else G.successors(node)
     #G = nx.DiGraph()
     nodes = [(pred,G.get_edge_data(pred,node)['weight'] if direct == -1 else G.get_edge_data(node,pred)['weight']) for pred in nodes]
     nodes.sort(key=operator.itemgetter(1), reverse=True)
     return nodes
-    """
+
     edges = []
     for p in nodes:
         weight = G.get_edge_data(p, node) if direct==-1 else G.get_edge_data(node, p)
@@ -216,7 +216,7 @@ def highestPred(G, node, direct=-1):
     edges.sort(key=operator.itemgetter(3),reverse=True)
     return edges[0] if edges else edges"""
 
-"""def highestPred(G, node, direct=-1):
+def highestPred(G, node, direct=-1):
     nodes = G.predecessors(node) if direct ==-1 else G.successors(node)
     edges = []
     for p in nodes:
@@ -230,7 +230,7 @@ def highestPred(G, node, direct=-1):
             else:
                 edges.append((node, (p,weight['weight']), (pp,ed['weight']), _weight))
     edges.sort(key=operator.itemgetter(3),reverse=True)
-    return edges[0] if edges else edges"""
+    return edges[0] if edges else edges
 
 def topSucc(node, G):
     successors = G.successors(node)

@@ -41,27 +41,40 @@ def extract_event_candidates(degree, graph, initialGraph, nodes):
         t = degree[0]
         predecessors = highestPred(graph, t[0])
         successors = highestPred(graph, t[0], direct=1)
+
         if not predecessors and not successors:
             degree = [d for d in degree if d[0] != t[0]]
             continue
-        toRem = [(pred[0], t[0]) for pred in predecessors[0:1]]
-        toRem.extend([(t[0], succ[0]) for succ in successors[0:1]])
-        vals = [t[0] for t in predecessors[0:1]] + [t[0]]
-        vals = vals + [t[0] for t in successors[0:1]]
+        vals = []
+        toRem = [p[0] for p in predecessors[0:2]]
+        toRem.append(t[0])
+        vals.extend(toRem)
+        toRem = list(ngrams(toRem,2))
+        succ = [t[0]]
+        succ.extend([p[0] for p in successors[1:3]])
+        vals.extend(succ)
+        toRem.extend(list(ngrams(succ,2)))
+
+        vals = set(vals)
+
+        """toRem = [(pred[0], t[0]) for pred in predecessors[0:2]]
+        toRem.extend([(t[0], succ[0]) for succ in successors[1:3]])
+        vals = [t[0] for t in predecessors[0:2]] + [t[0]]
+        vals = vals + [t[0] for t in successors[1:3]]"""
 
         # remove the pred and the succ in the list
         degree = [d for d in degree if d[0] not in vals]
 
-        val = {'keys': set([v for v in vals if v in nodes]), 'center': t, 'tweets': set()}
-        # print(vals)
+        val = {'keys': vals, 'center': t, 'tweets': set()}
+        print(toRem)
         for d in toRem:
             dd = graph.get_edge_data(d[0], d[1])
             val['tweets']= val['tweets'].union(set(dd['id']))
-        for d in predecessors[1:] + successors[1:]:
+        """for d in predecessors[0:2] + successors[1:3]:
             if graph.degree(d[0]) == 1:
                 toRem.append((d[0], t[0]) if graph.has_edge(d[0], t[0]) else (t[0], d[0]))
                 val['tweets'] = val['tweets'].union(graph.get_edge_data(d[0], t[0])['id'] if graph.has_edge(d[0], t[0]) else
-                                     graph.get_edge_data(t[0], d[0])['id'])
+                                     graph.get_edge_data(t[0], d[0])['id'])"""
 
         graph.remove_edges_from(toRem)
 
@@ -117,7 +130,7 @@ def merge_duplicate_events(res):
                 #s['keys'] = elem['keys'].union(s['keys'])
                 break
 
-    return [elem for elem in res if 'ignore' not in elem and len(elem['tweets']) > 10 and len(elem['keys']) > 1]
+    return [elem for elem in res if 'ignore' not in elem and len(elem['tweets']) > 0 and len(elem['keys']) >= 1]
 
 def process(opts):
 
@@ -226,8 +239,8 @@ if __name__ == '__main__':
     parser = OptionParser('''%prog -o ontology -t type -f force ''')
     parser.add_option('-n', '--negative', dest='ne', default=10000, type=int)
     parser.add_option('-t', '--tmin', dest='tmin', default=1, type=int)
-    parser.add_option('-w', '--wmin', dest='wmin', default=1, type=int)
-    parser.add_option('-s', '--smin', dest='smin', default=0.005, type=float)
+    parser.add_option('-w', '--wmin', dest='wmin', default=2, type=int)
+    parser.add_option('-s', '--smin', dest='smin', default=0.0005, type=float)
     #print(res)
     opts, args = parser.parse_args()
     process(opts)

@@ -14,6 +14,7 @@ seen = []
 
 
 visited = set()
+day = 0
 
 nes = []
 def build_graph(G, data):
@@ -149,6 +150,7 @@ def process(opts):
     wr.writerow(["GT", "#tweets", "Detected"])
 
     while True:
+        global  day
         group = StreamManager.nextBatch()
         if not group:
             break

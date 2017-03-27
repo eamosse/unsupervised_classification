@@ -70,9 +70,9 @@ def update():
         if not tweets:
             break
         db.connect("tweets_dataset")
-        db.insert("all_tweets", tweets)
+        res = db.insert("all_tweets", tweets)
         _from +=1000
-        print("inserted", len(tweets), "tweets")
+        print("inserted", res)
     db.connect("tweets_dataset")
 
 def saveRelevent(file):

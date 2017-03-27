@@ -63,16 +63,16 @@ def reconciliate():
 
 def update():
     db.remove("all_tweets", {'event_id':-1})
-    db.connect("event_2012")
-    tweets  = db.find("annotation_unsupervised")
-    db.connect("tweets_dataset")
-    _from, _to = 0,10000
-    while True :
-        db.insert("all_tweets", tweets[_from:_to])
-        _from = _to
-        _to = _to + 10000
-        if not tweets[_from:_to]:
+    _from, _to = 0,1000
+    while True:
+        db.connect("event_2012")
+        tweets  = db.find("annotation_unsupervised", skip=_from, limit=1000)
+        if not tweets:
             break
+        db.connect("tweets_dataset")
+        db.insert("all_tweets", tweets)
+        _from +=1000
+        print("inserted", len(tweets), "tweets")
     db.connect("tweets_dataset")
 
 def saveRelevent(file):

@@ -5,7 +5,7 @@ db.connect("tweets_dataset")
 collection = "events_annotated"
 
 dirty = []
-max = 60400
+max = 1233200
 current = 0
 ne = 10000
 

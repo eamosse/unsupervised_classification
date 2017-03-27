@@ -19,6 +19,9 @@ day = 0
 nes = []
 def build_graph(G, data):
     for t in data:
+        if t['id'] in seen:
+            seen.append(t['id'])
+
         ann = TextHelper.extract_entity_context(t)
         labels = [a['label'] for a in ann if 'label' in a]
 

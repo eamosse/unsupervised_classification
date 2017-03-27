@@ -62,18 +62,16 @@ def reconciliate():
     db.insert("events", tweets)
 
 def update():
-    db.remove("all_tweets", {'event_id':-1})
     _from, _to = 0,1000
     while True:
-        db.connect("event_2012")
         tweets  = db.find("annotation_unsupervised", skip=_from, limit=1000)
         if not tweets:
             break
-        db.connect("tweets_dataset")
+        for t in tweets:
+            del t['_id']
         res = db.insert("all_tweets", tweets)
+        print("Add", " : ", len(tweets))
         _from +=1000
-        print("inserted", res)
-    db.connect("tweets_dataset")
 
 def saveRelevent(file):
     with open(file, encoding="utf8") as csvfile:

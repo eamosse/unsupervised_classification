@@ -109,6 +109,7 @@ def clean():
             r['annotations'] = ann
         db.insert("annotation_purge", res)
 
+
 def removeDupllicate():
     observed = []
     tweets = db.find("non_event")
@@ -187,7 +188,7 @@ def parseFile(folder):
 
 
 if __name__ == '__main__':
-    update()
+    reconciliateID()
 
     #saveRelevent(opts.relevant)
     #parseFile(opts.folder)

@@ -19,6 +19,9 @@ day = 0
 nes = []
 def build_graph(G, data):
     for t in data:
+        if not 'id' in t:
+            continue
+
         if t['id'] in seen:
             seen.append(t['id'])
 
@@ -59,26 +62,16 @@ def extract_event_candidates(degree, graph, initialGraph, nodes):
         vals.extend(succ)
         toRem.extend(list(ngrams(succ,2)))
 
-        vals = set(vals)
-
-        """toRem = [(pred[0], t[0]) for pred in predecessors[0:2]]
-        toRem.extend([(t[0], succ[0]) for succ in successors[1:3]])
-        vals = [t[0] for t in predecessors[0:2]] + [t[0]]
-        vals = vals + [t[0] for t in successors[1:3]]"""
+        #vals = set(vals)
 
         # remove the pred and the succ in the list
         degree = [d for d in degree if d[0] not in vals]
 
-        val = {'keys': vals, 'center': t, 'tweets': set()}
+        val = {'keys': set(vals), 'keyss' : set(vals[:]),  'center': t, 'tweets': set()}
         print(toRem)
         for d in toRem:
             dd = graph.get_edge_data(d[0], d[1])
             val['tweets']= val['tweets'].union(set(dd['id']))
-        """for d in predecessors[0:2] + successors[1:3]:
-            if graph.degree(d[0]) == 1:
-                toRem.append((d[0], t[0]) if graph.has_edge(d[0], t[0]) else (t[0], d[0]))
-                val['tweets'] = val['tweets'].union(graph.get_edge_data(d[0], t[0])['id'] if graph.has_edge(d[0], t[0]) else
-                                     graph.get_edge_data(t[0], d[0])['id'])"""
 
         graph.remove_edges_from(toRem)
 
@@ -99,7 +92,6 @@ def extract_event_candidates(degree, graph, initialGraph, nodes):
                     graph.remove_nodes_from(_nodes)
                     degree = [d for d in degree if d[0] not in _nodes]
         if val['keys']:
-            #val['keys'] = set([k for k in val['keys'] if k in nes])
             res.append(val)
 
     return res
@@ -116,11 +108,13 @@ def merge_duplicate_events(res):
                 elem2['ignore'] = True
                 continue
 
-            #common_tweets = len( elem2['tweets'].intersection(elem['tweets']))
             common_keys = len(elem2['keys'].intersection(elem['keys']))
             if elem2['keys'].issubset(elem['keys']) or elem['keys'].issubset(elem2['keys']) or common_keys >= 1:
                 elem2['ignore'] = True
                 elem['tweets'] = elem['tweets'].union(elem2['tweets'])
+                if not 'keyss' in elem:
+                    elem['keyss'] =  set(list(elem['keys'])[:])
+                elem['keyss'] = elem['keyss'].union(elem2['keys'])
                 # break
     for elem in res:
         if not elem['keys']:
@@ -131,7 +125,9 @@ def merge_duplicate_events(res):
                     elem['keys'].intersection(s['keys'])) > 1:
                 elem['ignore'] = True
                 s['tweets'] = s['tweets'].union(elem['tweets'])
-                #s['keys'] = elem['keys'].union(s['keys'])
+                if not 'keyss' in elem:
+                    elem['keyss'] = set(list(elem['keys'])[:])
+                elem['keyss'] = elem['keyss'].union(s['keys'])
                 break
 
     return [elem for elem in res if 'ignore' not in elem and len(elem['tweets']) > 0 and len(elem['keys']) >= 1]
@@ -171,7 +167,7 @@ def process(opts):
 
         #Rename similar nodes
         #log.debug("Merging nodes")
-        #mergeNodes(initialGraph)
+
         log.debug("Cleaning the graph")
         __nodes = degrees(initialGraph, nbunch=initialGraph.nodes())
         __nodes = [d if d[1] > 0 else (d[0], 1) for d in __nodes]
@@ -182,12 +178,8 @@ def process(opts):
             log.debug("Retrieving nodes")
             nodes = graph.nodes(data=True)
 
-            #smin = 0.5/graph.number_of_nodes()
-            #print(nodes)
-            #print(nes)
             nodes= [n[0] for n in nodes if n[1]['entity']]
             degree = getScore(graph, __nodes, dangling=True)
-            #smin = sum([t[1] for t in degree])/len(degree)
             degree =[d for d in degree if d[1] >= smin and d[0] in nodes]
             if len(degree) == 0:
                 continue
@@ -210,17 +202,17 @@ def process(opts):
                 text = generateDefinition(tweets) #
                 event = AnnotationHelper.groundTruthEvent(collection,tweets)
                 if event and len(event) == 1:
-                    news.append([day, text, event[0], len(r['tweets']), r['keys']])
+                    news.append([day, text, event[0], len(r['tweets']), r['keyss']])
                     for g in gts:
                         if int(g[0]) == int(event[0]):
                             g.append(event[0])
                             break
                 else:
                     news.append(
-                        [day, text, "-1", len(r['tweets']), r['keys']])
+                        [day, text, "-1", len(r['tweets']), r['keyss']])
                     gts.append(['-1'])
 
-                initialGraph.remove_nodes_from(r['keys'])
+                initialGraph.remove_nodes_from(list(r['keyss']))
                 seen.append(r)
 
             toDelete = []
@@ -228,6 +220,7 @@ def process(opts):
             for node in nodes:
                 if 'iteration' in node[1] and node[1]['iteration'] > 2:
                     toDelete.append(node[0])
+            initialGraph.remove_nodes_from(toDelete)
             print("New Events")
             tt = tabulate(news, headers=["Day", "Description", "Ground Truth", "#tweets", "Keywords"])
             print(tt)

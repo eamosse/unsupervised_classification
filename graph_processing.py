@@ -148,6 +148,8 @@ def process(opts):
     wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
     wr.writerow(["GT", "#tweets", "Detected"])
 
+    global seen
+    seen = []
     while True:
         global  day
         group = StreamManager.nextBatch()

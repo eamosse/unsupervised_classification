@@ -37,10 +37,6 @@ def statCategory():
         tabulate(rr, headers=["Category", "Events", "Tweets"], tablefmt=_format))
 
 
-
-
-
-
 def evaluation():
 
     scores = ['0.0001','0.0005']

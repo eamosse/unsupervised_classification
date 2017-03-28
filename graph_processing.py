@@ -197,7 +197,7 @@ def process(opts):
             for r in events:
                 r['day'] = day
                 tweets = list(r['tweets'])
-                if len(r['tweets']) < 5 :
+                if (len(r['tweets']) < 10 and  len(r['keyss']) < 3) or len(r['tweets']) < 5:
                     continue
                 text = generateDefinition(tweets) #
                 event = AnnotationHelper.groundTruthEvent(collection,tweets)

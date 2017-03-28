@@ -154,6 +154,7 @@ def process(opts):
         if not group:
             break
         day = group['day']
+        seen = [s for s in seen if day - s['day'] <=2]
         log.debug(str(group['day']) + " - " + str(group['interval']))
 
         nodes = initialGraph.nodes(data=True)

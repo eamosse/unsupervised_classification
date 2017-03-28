@@ -43,7 +43,7 @@ def statCategory():
 
 def evaluation():
 
-    scores = ['0.0005']
+    scores = ['0.0001','0.0005']
     results = []
     categories = []
     headers = [['_']]

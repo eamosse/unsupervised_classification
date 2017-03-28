@@ -102,14 +102,15 @@ def merge_duplicate_events(res):
             elem['ignore'] = True
             continue
 
+        elem['ents'] = elem['keys'].intersection(set(nes))
         for j in range(i + 1, len(res)):
             elem2 = res[j]
             if 'ignore' in elem2 or not elem2['keys']:
                 elem2['ignore'] = True
                 continue
-
-            common_keys = len(elem2['keys'].intersection(elem['keys']))
-            if elem2['keys'].issubset(elem['keys']) or elem['keys'].issubset(elem2['keys']) or common_keys > 1:
+            elem2['ents'] = elem2['keys'].intersection(set(nes))
+            common_keys = len(elem2['ents'].intersection(elem['ents']))
+            if elem2['keys'].issubset(elem['keys']) or elem['keys'].issubset(elem2['keys']) or common_keys >= 1:
                 elem2['ignore'] = True
                 elem['tweets'] = elem['tweets'].union(elem2['tweets'])
                 if not 'keyss' in elem:

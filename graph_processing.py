@@ -109,14 +109,14 @@ def merge_duplicate_events(res):
                 continue
 
             common_keys = len(elem2['keys'].intersection(elem['keys']))
-            if elem2['keys'].issubset(elem['keys']) or elem['keys'].issubset(elem2['keys']) or common_keys >= 1:
+            if elem2['keys'].issubset(elem['keys']) or elem['keys'].issubset(elem2['keys']) or common_keys > 1:
                 elem2['ignore'] = True
                 elem['tweets'] = elem['tweets'].union(elem2['tweets'])
                 if not 'keyss' in elem:
                     elem['keyss'] =  set(list(elem['keys'])[:])
                 elem['keyss'] = elem['keyss'].union(elem2['keys'])
                 # break
-    for elem in res:
+    """for elem in res:
         if not elem['keys']:
             elem['ignore'] = True
             continue
@@ -128,7 +128,7 @@ def merge_duplicate_events(res):
                 if not 'keyss' in elem:
                     elem['keyss'] = set(list(elem['keys'])[:])
                 elem['keyss'] = elem['keyss'].union(s['keys'])
-                break
+                break"""
 
     return [elem for elem in res if 'ignore' not in elem and len(elem['tweets']) > 0 and len(elem['keys']) >= 1]
 
@@ -200,7 +200,7 @@ def process(opts):
             for r in events:
                 r['day'] = day
                 tweets = list(r['tweets'])
-                if (len(r['tweets']) < 10 and  len(r['keyss']) < 3) or len(r['tweets']) < 5:
+                if len(r['tweets']) < 10 :
                     continue
                 text = generateDefinition(tweets) #
                 event = AnnotationHelper.groundTruthEvent(collection,tweets)

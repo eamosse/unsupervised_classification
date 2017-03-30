@@ -149,11 +149,27 @@ def clean(G, min_weight=2):
             if data < min_weight:
                 toRem.append((n,nbr))
     G.remove_edges_from(toRem)
-    graphs = [G]
-    if G and not nx.is_strongly_connected(G):
-        graphs = sorted(nx.strongly_connected_component_subgraphs(G), key = len, reverse = True)
+    gg = []
+    if not nx.is_strongly_connected(G):
+        graphs = sorted(nx.strongly_connected_component_subgraphs(G), key=len, reverse=True)
+        graphs = [g for g in graphs if nx.number_of_nodes(g) > 3]
+        for g in graphs:
+            node_cut = nx.minimum_node_cut(g)
+            g.remove_nodes_from(node_cut)
+            gp = sorted(nx.strongly_connected_component_subgraphs(g), key=len, reverse=True)
+            gg.extend(gp)
+            print("NOT CONNECTED", node_cut)
+    else:
+        node_cut = nx.minimum_node_cut(G)
+        G.remove_nodes_from(node_cut)
+        gp = sorted(nx.strongly_connected_component_subgraphs(G), key=len, reverse=True)
+        gg.extend(gp)
+        print("CONNECTED", node_cut)
 
-    graphs = [g for g in graphs if nx.number_of_nodes(g) > 1]
+    """if G and not nx.is_strongly_connected(G):
+        graphs = sorted(nx.strongly_connected_component_subgraphs(G), key = len, reverse = True)"""
+
+    graphs = [g for g in gg if nx.number_of_nodes(g) > 3]
     return graphs
 
 def get_components(G):

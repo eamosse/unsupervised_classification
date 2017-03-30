@@ -126,7 +126,7 @@ def merge_duplicate_events(res):
             continue
         for s in seen:
             if elem['keys'].issubset(s['keys']) or s['keys'].issubset(elem['keys']) or len(
-                    elem['ents'].intersection(s['ents'])) > 1:
+                    elem['ents'].intersection(s['ents'])) >= 1:
                 elem['ignore'] = True
                 s['tweets'] = s['tweets'].union(elem['tweets'])
                 if not 'keyss' in elem:
@@ -137,10 +137,7 @@ def merge_duplicate_events(res):
     return [elem for elem in res if 'ignore' not in elem and len(elem['tweets']) > 0 and len(elem['keys']) >= 1]
 
 def process(opts):
-
-    ne = opts.ne
     StreamManager.ne = opts.ne
-
     tmin = opts.tmin
     min_weight = opts.wmin
     smin = opts.smin
@@ -178,8 +175,27 @@ def process(opts):
         log.debug("Cleaning the graph")
         __nodes = degrees(initialGraph, nbunch=initialGraph.nodes())
         __nodes = [d if d[1] > 0 else (d[0], 1) for d in __nodes]
+        """gg = []
+        if not nx.is_strongly_connected(initialGraph):
+            graphs = sorted(nx.strongly_connected_component_subgraphs(initialGraph), key=len, reverse=True)
+            graphs = [g for g in graphs if nx.number_of_nodes(g) > 3]
+            for g in graphs:
+                node_cut = nx.minimum_node_cut(g)
+                g.remove_nodes_from(node_cut)
+                gp = sorted(nx.strongly_connected_component_subgraphs(g), key=len, reverse=True)
+                gg.extend(gp)
+                print("NOT CONNECTED",node_cut)
+        else:
+            node_cut = nx.minimum_node_cut(initialGraph)
+            initialGraph.remove_nodes_from(node_cut)
+            gp = sorted(nx.strongly_connected_component_subgraphs(initialGraph), key=len, reverse=True)
+            gg.extend(gp)
+            print("CONNECTED",node_cut)
+
+        gg = [g for g in gg if nx.number_of_nodes(g) > 3]"""
 
         gg = clean(initialGraph, min_weight=min_weight)
+
 
         for graph in gg :
             log.debug("Retrieving nodes")

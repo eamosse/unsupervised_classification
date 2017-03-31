@@ -166,9 +166,6 @@ def clean(G, min_weight=2):
         gg.extend(gp)
         print("CONNECTED", node_cut)
 
-    """if G and not nx.is_strongly_connected(G):
-        graphs = sorted(nx.strongly_connected_component_subgraphs(G), key = len, reverse = True)"""
-
     graphs = [g for g in gg if nx.number_of_nodes(g) > 3]
     return graphs
 
@@ -211,13 +208,13 @@ def topPred(node, G):
 
 
 
-"""def highestPred(G, node, direct=-1):
+def highestPred(G, node, direct=-1):
     nodes = G.predecessors(node) if direct ==-1 else G.successors(node)
     #G = nx.DiGraph()
-    nodes = [(pred,G.get_edge_data(pred,node)['weight'] if direct == -1 else G.get_edge_data(node,pred)['weight']) for pred in nodes]
-    nodes.sort(key=operator.itemgetter(1), reverse=True)
+    #nodes = [(pred,G.get_edge_data(pred,node)['weight'] if direct == -1 else G.get_edge_data(node,pred)['weight']) for pred in nodes]
+    """nodes.sort(key=operator.itemgetter(1), reverse=True)
     return nodes
-
+    """
     edges = []
     for p in nodes:
         weight = G.get_edge_data(p, node) if direct==-1 else G.get_edge_data(node, p)
@@ -230,9 +227,15 @@ def topPred(node, G):
             else:
                 edges.append((node, (p,weight['weight']), (pp,ed['weight']), _weight))
     edges.sort(key=operator.itemgetter(3),reverse=True)
-    return edges[0] if edges else edges"""
+    return edges[0] if edges else edges
 
-def highestPred(G, node, direct=-1):
+def get_degree(_degrees, node):
+    for d in _degrees:
+        if d[0] == node:
+            return d[1]
+    return 0
+
+"""def highestPred(G, node, _degrees, direct=-1):
     nodes = G.predecessors(node) if direct ==-1 else G.successors(node)
     edges = []
     for p in nodes:
@@ -242,11 +245,11 @@ def highestPred(G, node, direct=-1):
             ed = G.get_edge_data(pp, p) if direct == -1 else G.get_edge_data(p, pp)
             _weight = weight['weight']
             if direct == -1:
-                edges.append(((pp,ed['weight']),(p,weight['weight']), node,_weight))
+                edges.append(((pp,ed['weight']*get_degree(_degrees,pp)),(p,weight['weight']*get_degree(_degrees,p)), node,_weight))
             else:
-                edges.append((node, (p,weight['weight']), (pp,ed['weight']), _weight))
+                edges.append((node, (p,weight['weight']*get_degree(_degrees,p)), (pp,ed['weight']*get_degree(_degrees,pp)), _weight))
     edges.sort(key=operator.itemgetter(3),reverse=True)
-    return edges[0] if edges else edges
+    return edges[0] if edges else edges"""
 
 def topSucc(node, G):
     successors = G.successors(node)

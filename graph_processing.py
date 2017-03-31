@@ -11,10 +11,11 @@ collection = "events_annotated"
 log = helper.enableLog()
 
 seen = []
+texts = []
 
-
-visited = set()
+visited = []
 day = 0
+initialGraph = None
 
 nes = []
 def build_graph(G, data):
@@ -22,15 +23,26 @@ def build_graph(G, data):
         if not 'id' in t:
             continue
 
-        if t['id'] in seen:
-            seen.append(t['id'])
+        if not t['id'] in visited:
+            visited.append(t['id'])
+        else:
+            continue
+
+        if not t['text'] in texts:
+            texts.append(t['text'])
+        else:
+            continue
+
+        if len(TextHelper.tokenize(t['text'])) < 2:
+            continue
+
 
         ann = TextHelper.extract_entity_context(t)
         labels = [a['label'] for a in ann if 'label' in a]
 
         for a in ann:
 
-            if 'type' in a and a['label'].lower() not in nes and ('location' in a['type'] or 'person' in a['type'] or 'organisation' in a['type']):
+            if 'type' in a and a['label'].lower() not in nes and ('location' in a['type'] or 'person' in a['type']):
                 nes.append(a['label'].lower())
 
             for l in a['edges']:
@@ -43,6 +55,7 @@ def build_graph(G, data):
                         addEdge(G, p[0], p[1], t['id'], labels)
 
 def extract_event_candidates(degree, graph, initialGraph, nodes):
+    log.debug("Extracting events candidate...")
     res = []
     while degree:
         t = degree[0]
@@ -69,14 +82,16 @@ def extract_event_candidates(degree, graph, initialGraph, nodes):
 
         val = {'keys': set(vals), 'keyss' : set(vals[:]),  'center': t, 'tweets': set()}
         print(toRem)
+        mnodes = []
         for d in toRem:
+            mnodes.extend([d[0],d[1]])
             dd = graph.get_edge_data(d[0], d[1])
             val['tweets']= val['tweets'].union(set(dd['id']))
 
-        graph.remove_edges_from(toRem)
+        graph.remove_nodes_from(mnodes)
 
         toRem = list(set([r[0] for r in toRem]).union(set([r[1] for r in toRem])))
-        if not nx.is_strongly_connected(graph):
+        if len(graph) > 0 and not nx.is_strongly_connected(graph):
             # log.debug("Graph beccame disconnected beacause of nodes removal")
             components = get_components(graph)
             for c in components:
@@ -96,7 +111,15 @@ def extract_event_candidates(degree, graph, initialGraph, nodes):
 
     return res
 
+def merge(elem, elem2):
+    elem2['ignore'] = True
+    elem['tweets'] = elem['tweets'].union(elem2['tweets'])
+    if not 'keyss' in elem:
+        elem['keyss'] = set(list(elem['keys'])[:])
+    elem['keyss'] = elem['keyss'].union(elem2['keys'])
+
 def merge_duplicate_events(res):
+    log.debug("Merge duplicated events...")
     for i, elem in enumerate(res):
         if 'ignore' in elem or not elem['keys'].intersection(set(nes)):
             elem['ignore'] = True
@@ -111,13 +134,24 @@ def merge_duplicate_events(res):
             elem2['ents'] = elem2['keys'].intersection(set(nes))
             common_ents = len(elem2['ents'].intersection(elem['ents']))
             common_keys = len(elem2['keyss'].intersection(elem['keyss']))
-            if elem2['keys'].issubset(elem['keys']) or elem['keys'].issubset(elem2['keys']) or common_keys > 3 or common_ents >= 1:
-                elem2['ignore'] = True
-                elem['tweets'] = elem['tweets'].union(elem2['tweets'])
-                if not 'keyss' in elem:
-                    elem['keyss'] =  set(list(elem['keys'])[:])
-                elem['keyss'] = elem['keyss'].union(elem2['keys'])
+            if elem2['keys'].issubset(elem['keys']) or elem['keys'].issubset(elem2['keys']):
+                merge(elem,elem2)
+                continue
                 # break
+            initialGraph = nx.DiGraph()
+            if initialGraph.has_edge(elem2['center'], elem['center']) or initialGraph.has_edge(elem['center'], elem2['center']):
+                merge(elem, elem2)
+                continue
+            index = 0
+            for _e in elem['keys']:
+                for _ee in elem2['keys']:
+                    if initialGraph.has_edge(_e, _ee):
+                        index+=1
+                    if index > 1:
+                        merge(elem, elem2)
+                if index > 1:
+                    break
+
 
 
     for elem in res:
@@ -137,6 +171,7 @@ def merge_duplicate_events(res):
     return [elem for elem in res if 'ignore' not in elem and len(elem['tweets']) > 0 and len(elem['keys']) >= 1]
 
 def process(opts):
+    global initialGraph
     StreamManager.ne = opts.ne
     tmin = opts.tmin
     min_weight = opts.wmin
@@ -163,7 +198,7 @@ def process(opts):
         nodes = initialGraph.nodes(data=True)
         for node in nodes:
             node[1]['iteration'] = 1 if not 'iteration' in node[1] else node[1]['iteration'] + 1
-        initialGraph.clear()
+        #initialGraph.clear()
         log.debug("Building the graph")
         #build the graph from tweets
         build_graph(initialGraph, group['data'])
@@ -175,35 +210,28 @@ def process(opts):
         log.debug("Cleaning the graph")
         __nodes = degrees(initialGraph, nbunch=initialGraph.nodes())
         __nodes = [d if d[1] > 0 else (d[0], 1) for d in __nodes]
-        """gg = []
-        if not nx.is_strongly_connected(initialGraph):
-            graphs = sorted(nx.strongly_connected_component_subgraphs(initialGraph), key=len, reverse=True)
-            graphs = [g for g in graphs if nx.number_of_nodes(g) > 3]
-            for g in graphs:
-                node_cut = nx.minimum_node_cut(g)
-                g.remove_nodes_from(node_cut)
-                gp = sorted(nx.strongly_connected_component_subgraphs(g), key=len, reverse=True)
-                gg.extend(gp)
-                print("NOT CONNECTED",node_cut)
-        else:
-            node_cut = nx.minimum_node_cut(initialGraph)
-            initialGraph.remove_nodes_from(node_cut)
-            gp = sorted(nx.strongly_connected_component_subgraphs(initialGraph), key=len, reverse=True)
-            gg.extend(gp)
-            print("CONNECTED",node_cut)
 
-        gg = [g for g in gg if nx.number_of_nodes(g) > 3]"""
+        _degree = getScore(initialGraph, __nodes, dangling=True)
+        _degree = [d for d in _degree if d[1] >= smin]
+        nodeg = [d[0] for d in _degree if d[1] < smin]
+
+        initialGraph.remove_nodes_from(nodeg)
 
         gg = clean(initialGraph, min_weight=min_weight)
 
+        ggg = []
+        for g in gg:
+            ggg.extend(clean(g, min_weight=0))
 
-        for graph in gg :
+        for g in ggg:
+            print(g.nodes())
+
+        for graph in ggg :
             log.debug("Retrieving nodes")
             nodes = graph.nodes(data=True)
 
             nodes= [n[0] for n in nodes if n[1]['entity']]
-            degree = getScore(graph, __nodes, dangling=True)
-            degree =[d for d in degree if d[1] >= smin and d[0] in nodes]
+            degree = [d for d in _degree if d[0] in nodes]
             if len(degree) == 0:
                 continue
 
@@ -220,7 +248,7 @@ def process(opts):
             for r in events:
                 r['day'] = day
                 tweets = list(r['tweets'])
-                if len(r['tweets']) < 10 :
+                if len(r['tweets']) < 20 :
                     continue
                 text = generateDefinition(tweets) #
                 event = AnnotationHelper.groundTruthEvent(collection,tweets)
@@ -258,10 +286,10 @@ if __name__ == '__main__':
 
 
     parser = OptionParser('''%prog -o ontology -t type -f force ''')
-    parser.add_option('-n', '--negative', dest='ne', default=10000, type=int)
+    parser.add_option('-n', '--negative', dest='ne', default=50000, type=int)
     parser.add_option('-t', '--tmin', dest='tmin', default=1, type=int)
-    parser.add_option('-w', '--wmin', dest='wmin', default=2, type=int)
-    parser.add_option('-s', '--smin', dest='smin', default=0.0005, type=float)
+    parser.add_option('-w', '--wmin', dest='wmin', default=3, type=int)
+    parser.add_option('-s', '--smin', dest='smin', default=0.005, type=float)
     #print(res)
     opts, args = parser.parse_args()
     process(opts)

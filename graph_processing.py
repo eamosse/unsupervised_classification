@@ -117,40 +117,47 @@ def merge(elem, elem2):
     elem['keyss'] = elem['keyss'].union(elem2['keys'])
 
 def merge_duplicate_events(res):
+    hasMerged = True
     log.debug("Merge duplicated events...")
-    for i, elem in enumerate(res):
-        if 'ignore' in elem or not elem['keys'].intersection(set(nes)):
-            elem['ignore'] = True
-            continue
+    round = 1
+    while hasMerged:
+        hasMerged = False
+        res = [elem for elem in res if 'ignore' not in elem and len(elem['tweets']) > 0 and len(elem['keys']) >= 1*round]
+        for i, elem in enumerate(res):
+            if 'ignore' in elem or not elem['keys'].intersection(set(nes)):
+                elem['ignore'] = True
+                continue
 
-        elem['ents'] = elem['keys'].intersection(set(nes))
-        for j in range(i + 1, len(res)):
-            elem2 = res[j]
-            if 'ignore' in elem2 or not elem2['keys']:
-                elem2['ignore'] = True
-                continue
-            elem2['ents'] = elem2['keys'].intersection(set(nes))
-            common_ents = len(elem2['ents'].intersection(elem['ents']))
-            common_keys = len(elem2['keyss'].intersection(elem['keyss']))
-            if elem2['keys'].issubset(elem['keys']) or elem['keys'].issubset(elem2['keys']):
-                merge(elem,elem2)
-                continue
-                # break
-            initialGraph = nx.DiGraph()
-            if initialGraph.has_edge(elem2['center'], elem['center']) or initialGraph.has_edge(elem['center'], elem2['center']):
-                merge(elem, elem2)
-                continue
-            index = 0
-            for _e in elem['keys']:
-                for _ee in elem2['keys']:
-                    if initialGraph.has_edge(_e, _ee):
-                        index+=1
+            elem['ents'] = elem['keyss'].intersection(set(nes))
+            for j in range(i + 1, len(res)):
+                elem2 = res[j]
+                if 'ignore' in elem2 or not elem2['keys']:
+                    elem2['ignore'] = True
+                    continue
+                elem2['ents'] = elem2['keyss'].intersection(set(nes))
+                common_ents = len(elem2['ents'].intersection(elem['ents']))
+                #common_keys = len(elem2['keyss'].intersection(elem['keyss']))
+                if elem2['keyss'].issubset(elem['keyss']) or elem['keyss'].issubset(elem2['keyss']) or common_ents > 1 :
+                    merge(elem,elem2)
+                    hasMerged = True
+                    continue
+                    # break
+                initialGraph = nx.DiGraph()
+                if initialGraph.has_edge(elem2['center'], elem['center']) or initialGraph.has_edge(elem['center'], elem2['center']):
+                    merge(elem, elem2)
+                    hasMerged = True
+                    continue
+                index = 0
+                for _e in elem['keyss']:
+                    for _ee in elem2['keyss']:
+                        if initialGraph.has_edge(_e, _ee):
+                            index+=1
+                        if index > 1:
+                            merge(elem, elem2)
+                            hasMerged = True
                     if index > 1:
-                        merge(elem, elem2)
-                if index > 1:
-                    break
-
-
+                        break
+        round += 1
 
     for elem in res:
         if not elem['keys'] or 'ignore' in elem:
@@ -217,14 +224,14 @@ def process(opts):
 
         gg = clean(initialGraph, min_weight=min_weight)
 
-        """ggg = []
+        ggg = []
         for g in gg:
             ggg.extend(clean(g, min_weight=0))
-
+        """
         for g in ggg:
             print(g.nodes())"""
 
-        for graph in gg :
+        for graph in ggg :
             log.debug("Retrieving nodes")
             nodes = graph.nodes(data=True)
 

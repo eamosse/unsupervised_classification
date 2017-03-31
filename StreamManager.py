@@ -9,7 +9,7 @@ max = 1233200
 current = 0
 ne = 10000
 
-groups = db.intervales(collection, param="hour", interval=1)
+groups = db.intervales(collection, param="hour", interval=5)
 
 
 def dirtyTweets(nb):

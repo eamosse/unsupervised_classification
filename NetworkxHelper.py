@@ -218,15 +218,19 @@ def highestPred(G, node, direct=-1):
     edges = []
     for p in nodes:
         weight = G.get_edge_data(p, node) if direct==-1 else G.get_edge_data(node, p)
-        _nodes = G.predecessors(p) if direct == -1 else G.successors(p)
-        for pp in _nodes:
+        #_nodes = G.predecessors(p) if direct == -1 else G.successors(p)
+        #_weight = len(set(weight['id']).intersection(set(ed['id'])))
+        if direct == -1:
+            edges.append(((p, weight['weight']), node, weight['weight']))
+        else:
+            edges.append((node, (p, weight['weight']), weight['weight']))
+
+        """for pp in _nodes:
             ed = G.get_edge_data(pp, p) if direct == -1 else G.get_edge_data(p, pp)
-            _weight = len(set(weight['id']).intersection(set(ed['id'])))
-            if direct == -1:
-                edges.append(((pp,ed['weight']),(p,weight['weight']), node,_weight))
-            else:
-                edges.append((node, (p,weight['weight']), (pp,ed['weight']), _weight))
-    edges.sort(key=operator.itemgetter(3),reverse=True)
+            _weight = len(set(weight['id']).intersection(set(ed['id'])))"""
+
+    edges.sort(key=operator.itemgetter(2),reverse=True)
+    #print(edges)
     return edges[0] if edges else edges
 
 def get_degree(_degrees, node):

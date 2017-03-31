@@ -23,7 +23,7 @@ def build_graph(G, data):
         if not 'id' in t:
             continue
 
-        if not t['id'] in visited:
+        """if not t['id'] in visited:
             visited.append(t['id'])
         else:
             continue
@@ -34,8 +34,7 @@ def build_graph(G, data):
             continue
 
         if len(TextHelper.tokenize(t['text'])) < 2:
-            continue
-
+            continue"""
 
         ann = TextHelper.extract_entity_context(t)
         labels = [a['label'] for a in ann if 'label' in a]
@@ -66,17 +65,16 @@ def extract_event_candidates(degree, graph, initialGraph, nodes):
             degree = [d for d in degree if d[0] != t[0]]
             continue
         vals = []
-        toRem = [p[0] for p in predecessors[0:2]]
+        toRem = [p[0] for p in predecessors[0:1]]
         toRem.append(t[0])
         vals.extend(toRem)
         toRem = list(ngrams(toRem,2))
         succ = [t[0]]
-        succ.extend([p[0] for p in successors[1:3]])
+        succ.extend([p[0] for p in successors[1:2]])
         vals.extend(succ)
         toRem.extend(list(ngrams(succ,2)))
 
         #vals = set(vals)
-
         # remove the pred and the succ in the list
         degree = [d for d in degree if d[0] not in vals]
 
@@ -219,14 +217,14 @@ def process(opts):
 
         gg = clean(initialGraph, min_weight=min_weight)
 
-        ggg = []
+        """ggg = []
         for g in gg:
             ggg.extend(clean(g, min_weight=0))
 
         for g in ggg:
-            print(g.nodes())
+            print(g.nodes())"""
 
-        for graph in ggg :
+        for graph in gg :
             log.debug("Retrieving nodes")
             nodes = graph.nodes(data=True)
 
@@ -248,7 +246,7 @@ def process(opts):
             for r in events:
                 r['day'] = day
                 tweets = list(r['tweets'])
-                if len(r['tweets']) < 20 :
+                if len(r['tweets']) < 10 :
                     continue
                 text = generateDefinition(tweets) #
                 event = AnnotationHelper.groundTruthEvent(collection,tweets)
@@ -289,7 +287,7 @@ if __name__ == '__main__':
     parser.add_option('-n', '--negative', dest='ne', default=50000, type=int)
     parser.add_option('-t', '--tmin', dest='tmin', default=1, type=int)
     parser.add_option('-w', '--wmin', dest='wmin', default=3, type=int)
-    parser.add_option('-s', '--smin', dest='smin', default=0.005, type=float)
+    parser.add_option('-s', '--smin', dest='smin', default=0.0001, type=float)
     #print(res)
     opts, args = parser.parse_args()
     process(opts)

@@ -208,7 +208,7 @@ def topPred(node, G):
 
 
 
-def highestPred(G, node, direct=-1):
+def highestPred(G, node, _degrees, direct=-1):
     nodes = G.predecessors(node) if direct ==-1 else G.successors(node)
     #G = nx.DiGraph()
     #nodes = [(pred,G.get_edge_data(pred,node)['weight'] if direct == -1 else G.get_edge_data(node,pred)['weight']) for pred in nodes]
@@ -221,9 +221,9 @@ def highestPred(G, node, direct=-1):
         #_nodes = G.predecessors(p) if direct == -1 else G.successors(p)
         #_weight = len(set(weight['id']).intersection(set(ed['id'])))
         if direct == -1:
-            edges.append(((p, weight['weight']), node, weight['weight']))
+            edges.append(((p, weight['weight']), node, weight['weight']*get_degree(_degrees,p)))
         else:
-            edges.append((node, (p, weight['weight']), weight['weight']))
+            edges.append((node, (p, weight['weight']), weight['weight']*get_degree(_degrees,p)))
 
         """for pp in _nodes:
             ed = G.get_edge_data(pp, p) if direct == -1 else G.get_edge_data(p, pp)

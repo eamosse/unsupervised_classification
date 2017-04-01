@@ -1,5 +1,6 @@
 from helper import MongoHelper as db
 import csv
+import random
 db.connect("tweets_dataset")
 
 collection = "events_annotated"
@@ -17,9 +18,13 @@ def dirtyTweets(nb):
     global current
     if current >= max:
         current = 0
-    non_events = db.find("nevents", limit=nb, skip=current)
+    non_events = db.find("nevents")
     current = nb + current
-    return non_events
+    random.shuffle(non_events)
+    random.shuffle(non_events)
+    random.shuffle(non_events)
+    random.shuffle(non_events)
+    return non_events [0:nb]
 
 def nextBatch():
     if groups:

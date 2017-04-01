@@ -107,7 +107,7 @@ def extract_event_candidates(degree, graph, initialGraph, nodes):
                     degree = [d for d in degree if d[0] not in _nodes]
         if val['keys']:
             res.append(val)
-    print({'keys': r['keys'], 'tweets' : len(r['tweets'])} for r in res)
+    print([{'keys': r['keys'], 'tweets' : len(r['tweets'])} for r in res])
     return res
 
 def merge(elem, elem2):

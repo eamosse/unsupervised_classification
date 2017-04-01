@@ -122,16 +122,14 @@ def has_edge(node1, node2):
     initialGraph = nx.DiGraph()
     origin, destination = None
     if initialGraph.has_edge(node1, node2) :
-            origin,destination = node1,node2
-
+        origin,destination = node1,node2
     elif initialGraph.has_edge(node2, node1):
-        origin, destination = node1, node2
+        origin, destination = node2, node1
     else:
         return False
-
     #edges = initialGraph.edges([origin], data='weight')
     edges = list(initialGraph.edges_iter(nbunch=[origin], data='weight', default=1))
-    return edges[0][0] == destination or edges[0][0] == destination
+    return edges[0][0] == destination or edges[0][1] == destination
 
 
 def merge_duplicate_events(res):

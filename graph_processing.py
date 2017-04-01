@@ -147,10 +147,10 @@ def merge_duplicate_events(res):
                     continue
                     # break
                 #initialGraph = nx.DiGraph()
-                """if initialGraph.has_edge(elem2['center'], elem['center']) or initialGraph.has_edge(elem['center'], elem2['center']):
+                if initialGraph.has_edge(elem2['center'], elem['center']) or initialGraph.has_edge(elem['center'], elem2['center']):
                     merge(elem, elem2)
                     hasMerged = True
-                    continue"""
+                    continue
                 index = 0
                 for _e in elem['keyss']:
                     for _ee in elem2['keyss']:

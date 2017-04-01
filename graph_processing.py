@@ -164,6 +164,13 @@ def merge_duplicate_events(res):
                         break
         round += 1
 
+
+    for i, elem in enumerate(res):
+        for j in range(i+1, len(res)):
+            if len(elem['tweets'].intersection(res[j])) > 5:
+                print("#5", res[j]['keys'])
+                merge(elem,res[j])
+
     for elem in res:
         if not elem['keys'] or 'ignore' in elem:
             elem['ignore'] = True
@@ -172,12 +179,14 @@ def merge_duplicate_events(res):
             if elem['keys'].issubset(s['keys']) or s['keys'].issubset(elem['keys']) or len(
                     elem['ents'].intersection(s['ents'])) > 1:
                 elem['ignore'] = True
-                print("#5", elem['keys'])
+                print("#6", elem['keys'])
                 s['tweets'] = s['tweets'].union(elem['tweets'])
                 if not 'keyss' in elem:
                     elem['keyss'] = set(list(elem['keys'])[:])
                 elem['keyss'] = elem['keyss'].union(s['keys'])
                 break
+
+
 
     return [elem for elem in res if 'ignore' not in elem and len(elem['tweets']) > 0 and len(elem['keys']) >= 1]
 

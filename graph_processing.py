@@ -136,7 +136,7 @@ def merge_duplicate_events(res):
     hasMerged = True
     log.debug("Merge duplicated events...")
     round = 1
-    res =  [r for r in res if len(r['tweets']) >= 10]
+    res =  [r for r in res if len(r['tweets']) > 10]
     #res = sorted(res, key=lambda k: len(k['tweets']), reverse=True)
 
     while hasMerged:

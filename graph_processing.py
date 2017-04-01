@@ -56,10 +56,11 @@ def build_graph(G, data):
 def extract_event_candidates(degree, graph, initialGraph, nodes):
     log.debug("Extracting events candidate...")
     res = []
+    deg = degree[:]
     while degree:
         t = degree[0]
-        predecessors = highestPred(graph, t[0])
-        successors = highestPred(graph, t[0], direct=1)
+        predecessors = highestPred(graph, t[0], deg)
+        successors = highestPred(graph, t[0], deg, direct=1)
 
         if not predecessors and not successors:
             degree = [d for d in degree if d[0] != t[0]]

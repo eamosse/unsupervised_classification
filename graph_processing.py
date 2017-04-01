@@ -126,6 +126,7 @@ def merge_duplicate_events(res):
         res = [elem for elem in res if 'ignore' not in elem and len(elem['tweets']) > 0 and len(elem['keys']) >= 1*round]
         for i, elem in enumerate(res):
             if 'ignore' in elem or not elem['keys'].intersection(set(nes)):
+                print("#1", elem['keys'])
                 elem['ignore'] = True
                 continue
 
@@ -134,6 +135,7 @@ def merge_duplicate_events(res):
                 elem2 = res[j]
                 if 'ignore' in elem2 or not elem2['keys']:
                     elem2['ignore'] = True
+                    print("#2", elem['keys'])
                     continue
                 elem2['ents'] = elem2['keyss'].intersection(set(nes))
                 common_ents = len(elem2['ents'].intersection(elem['ents']))
@@ -141,6 +143,7 @@ def merge_duplicate_events(res):
                 if elem2['keyss'].issubset(elem['keyss']) or elem['keyss'].issubset(elem2['keyss']) or common_ents > 1*round :
                     merge(elem,elem2)
                     hasMerged = True
+                    print("#3", elem['keys'])
                     continue
                     # break
                 #initialGraph = nx.DiGraph()
@@ -155,6 +158,7 @@ def merge_duplicate_events(res):
                             index+=1
                         if index > 1:
                             merge(elem, elem2)
+                            print("#4", elem['keys'])
                             hasMerged = True
                     if index > 1:
                         break
@@ -168,6 +172,7 @@ def merge_duplicate_events(res):
             if elem['keys'].issubset(s['keys']) or s['keys'].issubset(elem['keys']) or len(
                     elem['ents'].intersection(s['ents'])) > 1:
                 elem['ignore'] = True
+                print("#5", elem['keys'])
                 s['tweets'] = s['tweets'].union(elem['tweets'])
                 if not 'keyss' in elem:
                     elem['keyss'] = set(list(elem['keys'])[:])

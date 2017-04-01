@@ -115,7 +115,7 @@ def merge(elem, elem2):
     elem['tweets'] = elem['tweets'].union(elem2['tweets'])
     if not 'keyss' in elem:
         elem['keyss'] = set(list(elem['keys'])[:])
-    elem['keyss'] = elem['keyss'].union(elem2['keys'])
+    elem['keyss'] = elem['keyss'].union(elem2['keyss'])
 
 def merge_duplicate_events(res):
     hasMerged = True
@@ -166,7 +166,7 @@ def merge_duplicate_events(res):
             continue
         for s in seen:
             if elem['keys'].issubset(s['keys']) or s['keys'].issubset(elem['keys']) or len(
-                    elem['ents'].intersection(s['ents'])) >= 1:
+                    elem['ents'].intersection(s['ents'])) > 1:
                 elem['ignore'] = True
                 s['tweets'] = s['tweets'].union(elem['tweets'])
                 if not 'keyss' in elem:

@@ -156,7 +156,7 @@ def merge_duplicate_events(res):
                     for _ee in elem2['keyss']:
                         if initialGraph.has_edge(_e, _ee):
                             index+=1
-                        if index > 1:
+                        if index > 2*round():
                             merge(elem, elem2)
                             print("#4", elem2['keys'])
                             hasMerged = True

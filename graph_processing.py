@@ -138,7 +138,7 @@ def merge_duplicate_events(res):
                 elem2['ents'] = elem2['keyss'].intersection(set(nes))
                 common_ents = len(elem2['ents'].intersection(elem['ents']))
                 #common_keys = len(elem2['keyss'].intersection(elem['keyss']))
-                if elem2['keyss'].issubset(elem['keyss']) or elem['keyss'].issubset(elem2['keyss']) or common_ents > 1 :
+                if elem2['keyss'].issubset(elem['keyss']) or elem['keyss'].issubset(elem2['keyss']) or common_ents > 1*round :
                     merge(elem,elem2)
                     hasMerged = True
                     continue

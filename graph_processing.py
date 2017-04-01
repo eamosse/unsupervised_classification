@@ -285,7 +285,7 @@ def process(opts):
 
 
 if __name__ == '__main__':
-    #print(TextHelper.stops("go helll fuck this shiet damn it lmfao loll "))
+    ##print(TextHelper.stops("go helll fuck this shiet damn it lmfao loll "))
 
     parser = OptionParser('''%prog -o ontology -t type -f force ''')
     parser.add_option('-n', '--negative', dest='ne', default=50000, type=int)

@@ -178,6 +178,7 @@ def merge_duplicate_events(res):
 def process(opts):
     global initialGraph
     StreamManager.ne = opts.ne
+    StreamManager.interval = opts.int
     tmin = opts.tmin
     min_weight = opts.wmin
     smin = opts.smin
@@ -291,6 +292,7 @@ if __name__ == '__main__':
     parser.add_option('-n', '--negative', dest='ne', default=50000, type=int)
     parser.add_option('-t', '--tmin', dest='tmin', default=1, type=int)
     parser.add_option('-w', '--wmin', dest='wmin', default=3, type=int)
+    parser.add_option('-i', '--int', dest='wmin', default=1, type=int)
     parser.add_option('-s', '--smin', dest='smin', default=0.00001, type=float)
     #print(res)
     opts, args = parser.parse_args()

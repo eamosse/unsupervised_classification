@@ -227,9 +227,6 @@ def process(opts):
         ggg = []
         for g in gg:
             ggg.extend(clean(g, min_weight=0))
-        """
-        for g in ggg:
-            print(g.nodes())"""
 
         for graph in ggg :
             log.debug("Retrieving nodes")
@@ -288,13 +285,13 @@ def process(opts):
 
 
 if __name__ == '__main__':
-
+    #print(TextHelper.stops("go helll fuck this shiet damn it lmfao loll "))
 
     parser = OptionParser('''%prog -o ontology -t type -f force ''')
     parser.add_option('-n', '--negative', dest='ne', default=50000, type=int)
     parser.add_option('-t', '--tmin', dest='tmin', default=1, type=int)
     parser.add_option('-w', '--wmin', dest='wmin', default=3, type=int)
-    parser.add_option('-s', '--smin', dest='smin', default=0.0001, type=float)
+    parser.add_option('-s', '--smin', dest='smin', default=0.00001, type=float)
     #print(res)
     opts, args = parser.parse_args()
     process(opts)

@@ -154,17 +154,17 @@ def clean(G, min_weight=2):
         graphs = sorted(nx.strongly_connected_component_subgraphs(G), key=len, reverse=True)
         graphs = [g for g in graphs if nx.number_of_nodes(g) > 3]
         for g in graphs:
-            node_cut = nx.minimum_node_cut(g)
-            g.remove_nodes_from(node_cut)
+            node_cut = nx.minimum_edge_cut(g)
+            print("NOT CONNECTED", node_cut)
+            g.remove_edges_from(node_cut)
             gp = sorted(nx.strongly_connected_component_subgraphs(g), key=len, reverse=True)
             gg.extend(gp)
-            print("NOT CONNECTED", node_cut)
     else:
-        node_cut = nx.minimum_node_cut(G)
-        G.remove_nodes_from(node_cut)
+        node_cut = nx.minimum_edge_cut(G)
+        print("CONNECTED", node_cut)
+        G.remove_edges_from(node_cut)
         gp = sorted(nx.strongly_connected_component_subgraphs(G), key=len, reverse=True)
         gg.extend(gp)
-        print("CONNECTED", node_cut)
 
     graphs = [g for g in gg if nx.number_of_nodes(g) > 3]
     return graphs

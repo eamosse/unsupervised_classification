@@ -80,7 +80,7 @@ def extract_event_candidates(degree, graph, initialGraph, nodes):
         degree = [d for d in degree if d[0] not in vals]
 
         val = {'keys': set(vals), 'keyss' : set(vals[:]),  'center': t, 'tweets': set()}
-        print(toRem)
+        #print(toRem)
         mnodes = []
         for d in toRem:
             mnodes.extend([d[0],d[1]])
@@ -107,7 +107,7 @@ def extract_event_candidates(degree, graph, initialGraph, nodes):
                     degree = [d for d in degree if d[0] not in _nodes]
         if val['keys']:
             res.append(val)
-
+    print({'keys': r['keys'], 'tweets' : len(r['tweets'])} for r in res)
     return res
 
 def merge(elem, elem2):
@@ -136,6 +136,8 @@ def merge_duplicate_events(res):
     hasMerged = True
     log.debug("Merge duplicated events...")
     round = 1
+    res = sorted(res, key=lambda k: len(k['tweets']), reverse=True)
+
     while hasMerged:
         hasMerged = False
         res = [elem for elem in res if 'ignore' not in elem and len(elem['tweets']) > 0 and len(elem['keys']) >= 1*round]

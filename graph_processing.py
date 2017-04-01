@@ -117,6 +117,23 @@ def merge(elem, elem2):
         elem['keyss'] = set(list(elem['keys'])[:])
     elem['keyss'] = elem['keyss'].union(elem2['keyss'])
 
+
+def has_edge(node1, node2):
+    initialGraph = nx.DiGraph()
+    origin, destination = None
+    if initialGraph.has_edge(node1, node2) :
+            origin,destination = node1,node2
+
+    elif initialGraph.has_edge(node2, node1):
+        origin, destination = node1, node2
+    else:
+        return False
+
+    #edges = initialGraph.edges([origin], data='weight')
+    edges = list(initialGraph.edges_iter(nbunch=[origin], data='weight', default=1))
+    return edges[0][0] == destination or edges[0][0] == destination
+
+
 def merge_duplicate_events(res):
     hasMerged = True
     log.debug("Merge duplicated events...")
@@ -154,7 +171,7 @@ def merge_duplicate_events(res):
                 index = 0
                 for _e in elem['keyss']:
                     for _ee in elem2['keyss']:
-                        if initialGraph.has_edge(_e, _ee):
+                        if has_edge(_e, _ee):
                             index+=1
                         if index > 1*round:
                             merge(elem, elem2)

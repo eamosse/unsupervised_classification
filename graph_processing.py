@@ -120,7 +120,7 @@ def merge(elem, elem2):
 
 def has_edge(node1, node2):
     initialGraph = nx.DiGraph()
-    origin, destination = None
+    #origin, destination = None, None
     if initialGraph.has_edge(node1, node2) :
         origin,destination = node1,node2
     elif initialGraph.has_edge(node2, node1):

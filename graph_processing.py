@@ -57,20 +57,19 @@ def extract_event_candidates(degree, graph, initialGraph, nodes):
     log.debug("Extracting events candidate...")
     res = []
     deg = degree[:]
+    degree = [d[0] for d in degree]
     while degree:
-        t = degree[0]
-        predecessors = graph.predecessors(t[0]) #highestPred(graph, t[0], deg)
-        successors = graph.successors(t[0]) #highestPred(graph, t[0], deg)
+        t = degree.pop(0)
+        predecessors = [p for p in graph.predecessors(t) if p in degree] #highestPred(graph, t[0], deg)
+        successors = [p for p in graph.successors(t) if p in degree] #highestPred(graph, t[0], deg)
         #successors = highestPred(graph, t[0], deg, direct=1)
 
         if not predecessors and not successors:
-            degree = [d for d in degree if d[0] != t[0]]
             continue
 
-        toRem = [(pred,t[0]) for pred in predecessors]
-        toRem.extend([(t[0], succ) for succ in successors])
-        vals = []
-        vals = predecessors + [t[0]] + successors
+        toRem = [(pred,t) for pred in predecessors]
+        toRem.extend([(t, succ) for succ in successors])
+        vals = predecessors + [t] + successors
         #vals = set(toRem)
         """toRem = [p[0] for p in predecessors[0:1]]
         toRem.append(t[0])
@@ -83,7 +82,7 @@ def extract_event_candidates(degree, graph, initialGraph, nodes):
 
         #vals = set(vals)
         # remove the pred and the succ in the list
-        degree = [d for d in degree if d[0] not in vals]
+        degree = [d for d in degree if d not in vals]
 
         val = {'keys': set(vals), 'keyss' : set(vals[:]),  'center': t, 'tweets': set()}
         #print(toRem)
@@ -258,7 +257,7 @@ def process(opts):
 
         _degree = getScore(initialGraph, __nodes, dangling=False)
         _degree = [d for d in _degree if d[1] >= smin]
-        nodeg = [d[0] for d in _degree if d[1] < smin]
+        #nodeg = [d[0] for d in _degree if d[1] < smin]
 
         #initialGraph.remove_nodes_from(nodeg)
 
@@ -273,12 +272,10 @@ def process(opts):
             nodes = graph.nodes(data=True)
 
             nodes= [n[0] for n in nodes if n[1]['entity']]
-            degree = [d for d in _degree if d[0] in nodes]
-            if len(degree) == 0:
-                continue
+            #degree = [d for d in _degree if d[0] in nodes]
 
             log.debug("Ranking nodes")
-            res = extract_event_candidates(degree, graph, initialGraph, nodes)
+            res = extract_event_candidates(_degree, graph, initialGraph, nodes)
 
             log.debug("Pruning the graph")
             events = merge_duplicate_events(res)

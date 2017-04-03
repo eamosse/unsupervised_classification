@@ -93,7 +93,7 @@ def getScore(G, degree, dangling=True):
     calculated_page_rank = pagerank(G,personalization=X)
     nodes = {key: N*calculated_page_rank[key] for key in calculated_page_rank.keys()}
     nodes = sorted(nodes.items(), key=operator.itemgetter(1), reverse=True)
-    print(nodes)
+    #print(nodes)
     return nodes
 
 def mGraph(tweets):

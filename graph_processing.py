@@ -255,13 +255,15 @@ def process(opts):
         __nodes = degrees(initialGraph, nbunch=initialGraph.nodes())
         __nodes = [d if d[1] > 0 else (d[0], 1) for d in __nodes]
 
-        _degree = getScore(initialGraph, __nodes, dangling=False)
-        _degree = [d for d in _degree if d[1] >= smin]
+
         #nodeg = [d[0] for d in _degree if d[1] < smin]
 
         #initialGraph.remove_nodes_from(nodeg)
 
         clean(initialGraph, min_weight=min_weight)
+
+        _degree = getScore(initialGraph, __nodes, dangling=False)
+        _degree = [d for d in _degree if d[1] >= smin]
 
         ggg = [initialGraph]
         """for g in gg:

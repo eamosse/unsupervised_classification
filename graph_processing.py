@@ -59,21 +59,27 @@ def extract_event_candidates(degree, graph, initialGraph, nodes):
     deg = degree[:]
     while degree:
         t = degree[0]
-        predecessors = highestPred(graph, t[0], deg)
-        successors = highestPred(graph, t[0], deg, direct=1)
+        predecessors = graph.predecessors(t[0]) #highestPred(graph, t[0], deg)
+        successors = graph.successors(t[0]) #highestPred(graph, t[0], deg)
+        #successors = highestPred(graph, t[0], deg, direct=1)
 
         if not predecessors and not successors:
             degree = [d for d in degree if d[0] != t[0]]
             continue
+
+        toRem = [(pred,t[0]) for pred in predecessors]
+        toRem.extend([(t[0], succ) for succ in successors])
         vals = []
-        toRem = [p[0] for p in predecessors[0:1]]
+        vals = predecessors + [t[0]] + successors
+        #vals = set(toRem)
+        """toRem = [p[0] for p in predecessors[0:1]]
         toRem.append(t[0])
         vals.extend(toRem)
         toRem = list(ngrams(toRem,2))
         succ = [t[0]]
         succ.extend([p[0] for p in successors[1:2]])
         vals.extend(succ)
-        toRem.extend(list(ngrams(succ,2)))
+        toRem.extend(list(ngrams(succ,2)))"""
 
         #vals = set(vals)
         # remove the pred and the succ in the list
@@ -254,13 +260,13 @@ def process(opts):
         _degree = [d for d in _degree if d[1] >= smin]
         nodeg = [d[0] for d in _degree if d[1] < smin]
 
-        initialGraph.remove_nodes_from(nodeg)
+        #initialGraph.remove_nodes_from(nodeg)
 
-        gg = clean(initialGraph, min_weight=min_weight)
+        clean(initialGraph, min_weight=min_weight)
 
-        ggg = []
-        for g in gg:
-            ggg.extend(clean(g, min_weight=0))
+        ggg = [initialGraph]
+        """for g in gg:
+            ggg.extend(clean(g, min_weight=0))"""
 
         for graph in ggg :
             log.debug("Retrieving nodes")

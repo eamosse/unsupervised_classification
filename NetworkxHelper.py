@@ -149,7 +149,7 @@ def clean(G, min_weight=2):
             if data < min_weight:
                 toRem.append((n,nbr))
     G.remove_edges_from(toRem)
-    gg = []
+    """gg = []
     if not nx.is_strongly_connected(G):
         graphs = sorted(nx.strongly_connected_component_subgraphs(G), key=len, reverse=True)
         graphs = [g for g in graphs if nx.number_of_nodes(g) > 3]
@@ -167,7 +167,7 @@ def clean(G, min_weight=2):
         gg.extend(gp)
 
     graphs = [g for g in gg if nx.number_of_nodes(g) > 3]
-    return graphs
+    return graphs"""
 
 def get_components(G):
     components = sorted(nx.strongly_connected_component_subgraphs(G), key = len, reverse = True)

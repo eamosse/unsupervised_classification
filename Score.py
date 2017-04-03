@@ -84,15 +84,16 @@ def sumEdges(G, node, direct=1):
 previous = []
 def getScore(G, degree, dangling=True):
     X = None
+    N = G.number_of_nodes()
     if dangling:
 
         previous.append('=>'.join(['{}=>'.format(t[0]) * t[1] for t in degree]))
         X = buildTfIdf(previous[-48:]) if dangling else None
     #print(X)
     calculated_page_rank = pagerank(G,personalization=X)
-    nodes = {key: calculated_page_rank[key] for key in calculated_page_rank.keys()}
+    nodes = {key: N*calculated_page_rank[key] for key in calculated_page_rank.keys()}
     nodes = sorted(nodes.items(), key=operator.itemgetter(1), reverse=True)
-    #print(nodes)
+    print(nodes)
     return nodes
 
 def mGraph(tweets):

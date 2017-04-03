@@ -87,7 +87,7 @@ def getScore(G, degree, dangling=True):
     if dangling:
 
         previous.append('=>'.join(['{}=>'.format(t[0]) * t[1] for t in degree]))
-        X = buildTfIdf(previous[-24:]) if dangling else None
+        X = buildTfIdf(previous[-48:]) if dangling else None
     #print(X)
     calculated_page_rank = pagerank(G,personalization=X)
     nodes = {key: calculated_page_rank[key] for key in calculated_page_rank.keys()}

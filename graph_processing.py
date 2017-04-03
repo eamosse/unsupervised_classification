@@ -136,7 +136,7 @@ def merge_duplicate_events(res):
     hasMerged = True
     log.debug("Merge duplicated events...")
     round = 1
-    res =  [r for r in res if len(r['tweets']) > 10]
+    res =  [r for r in res if len(r['tweets']) >= 20]
     #res = sorted(res, key=lambda k: len(k['tweets']), reverse=True)
 
     while hasMerged:
@@ -250,7 +250,7 @@ def process(opts):
         __nodes = degrees(initialGraph, nbunch=initialGraph.nodes())
         __nodes = [d if d[1] > 0 else (d[0], 1) for d in __nodes]
 
-        _degree = getScore(initialGraph, __nodes, dangling=True)
+        _degree = getScore(initialGraph, __nodes, dangling=False)
         _degree = [d for d in _degree if d[1] >= smin]
         nodeg = [d[0] for d in _degree if d[1] < smin]
 

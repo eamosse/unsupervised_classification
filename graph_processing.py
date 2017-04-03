@@ -56,7 +56,6 @@ def build_graph(G, data):
 def extract_event_candidates(degree, graph, initialGraph, nodes):
     log.debug("Extracting events candidate...")
     res = []
-    deg = degree[:]
     degree = [d[0] for d in degree]
     while degree:
         t = degree.pop(0)
@@ -109,7 +108,7 @@ def extract_event_candidates(degree, graph, initialGraph, nodes):
                             if initialGraph.has_edge(t, n):
                                 val['tweets']= val['tweets'].union(initialGraph.get_edge_data(t, n)['id'])
                     graph.remove_nodes_from(_nodes)
-                    degree = [d for d in degree if d[0] not in _nodes]
+                    degree = [d for d in degree if d not in _nodes]
         if val['keys']:
             res.append(val)
     print([{'keys': r['keys'], 'tweets' : len(r['tweets'])} for r in res])

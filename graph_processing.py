@@ -136,7 +136,7 @@ def merge_duplicate_events(res):
     hasMerged = True
     log.debug("Merge duplicated events...")
     round = 1
-    res =  [r for r in res if len(r['tweets']) >= 20]
+    res =  [r for r in res if len(r['tweets']) >= 5]
     #res = sorted(res, key=lambda k: len(k['tweets']), reverse=True)
 
     while hasMerged:
@@ -284,8 +284,8 @@ def process(opts):
             for r in events:
                 r['day'] = day
                 tweets = list(r['tweets'])
-                if len(r['tweets']) < 10 :
-                    continue
+                """if len(r['tweets']) < 10 :
+                    continue"""
                 text = generateDefinition(tweets) #
                 event = AnnotationHelper.groundTruthEvent(collection,tweets)
                 if event and len(event) == 1:

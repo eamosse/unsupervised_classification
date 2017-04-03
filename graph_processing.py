@@ -7,7 +7,7 @@ import utils
 from optparse import OptionParser
 from Score import *
 from textrank import  *
-collection = "events_annotated"
+collection = "events_annotated_purge"
 log = helper.enableLog()
 
 seen = []
@@ -41,7 +41,7 @@ def build_graph(G, data):
 
         for a in ann:
 
-            if 'type' in a and a['label'].lower() not in nes and ('location' in a['type'] or 'person' in a['type']):
+            if 'type' in a and a['label'].lower() not in nes and ('location' in a['type'] or 'person' in a['type'] or 'organisation' in a['type']):
                 nes.append(a['label'].lower())
 
             for l in a['edges']:
@@ -57,18 +57,71 @@ def extract_event_candidates(degree, graph, initialGraph, nodes):
     log.debug("Extracting events candidate...")
     res = []
     degree = [d[0] for d in degree]
+    #deg = degree[:]
     while degree:
         t = degree.pop(0)
-        predecessors = [p for p in graph.predecessors(t) if p in degree] #highestPred(graph, t[0], deg)
-        successors = [p for p in graph.successors(t) if p in degree] #highestPred(graph, t[0], deg)
-        #successors = highestPred(graph, t[0], deg, direct=1)
+        #print(t)
+        toRem = set()
+
+        predecessors = [(p, t, graph.get_edge_data(p, t)['weight']) for p in graph.predecessors(t)]
+        successors = [(t, s, graph.get_edge_data(t, s)['weight']) for s in graph.successors(t)]
 
         if not predecessors and not successors:
             continue
 
-        toRem = [(pred,t) for pred in predecessors]
-        toRem.extend([(t, succ) for succ in successors])
-        vals = predecessors + [t] + successors
+        predecessors.sort(key=operator.itemgetter(2),reverse=True)  #extractKeyphrases() = itemgetter.ge
+        successors.sort(key=operator.itemgetter(2),reverse=True)  #extractKeyphrases() = itemgetter.ge
+
+        index = 0
+        toRem = set()
+        for p in predecessors:
+            if index == 0:
+                toRem.add(p[0:2])
+            for n in graph.neighbors(p[0]):
+                if has_edge(graph, n,t) or graph.neighbors(n) == 1:
+                    toRem.add((n, p[0]) if graph.has_edge(n,p[0]) else (p[0],n))
+
+            index +=1
+            #break
+
+        index = 0
+        for p in successors:
+            if index == 0:
+                toRem.add(p[0:2])
+            for n in graph.neighbors(p[1]):
+                if has_edge(graph, n,t) or graph.neighbors(n) == 1:
+                    toRem.add((n, p[1]) if graph.has_edge(n, p[1]) else (p[1], n))
+
+            index+=1
+            #break
+
+        vals = [l[0] for l in toRem] + [l[1] for l in toRem]
+
+        """for p in graph.predecessors(t):
+            toRem.add((p,t))
+            for n in graph.neighbors(p):
+                if has_edge(graph, n, t) or graph.neighbors(n) == 1:
+                    toRem.add((n, p) if graph.has_edge(n, p) else (p, n))
+
+        for p in graph.successors(t):
+            toRem.add((t,p))
+            for n in graph.neighbors(p):
+                if has_edge(graph, n, t) or graph.neighbors(n) == 1:
+                    toRem.add((n, p) if graph.has_edge(n, p) else (p, n))
+
+        vals = [l[0] for l in toRem] + [l[1] for l in toRem]"""
+
+
+
+        #predecessors = highestPred(graph, t, deg) #[p for p in degree  if p in graph.predecessors(t)] #highestPred(graph, t[0], deg)
+        #successors = highestPred(graph, t, deg, direct=1) #[p for p in degree if p in graph.successors(t)] #highestPred(graph, t[0], deg)
+        #successors = highestPred(graph, t[0], deg, direct=1)
+
+        #predecessors = predecessors[0]
+        #successors = successors[0]
+        """toRem = [pred[0:2] for pred in predecessors[0:1]]
+        toRem.extend([succ[0:2] for succ in successors[0:1]])
+        vals = [predecessors[0][0] , t , successors[0][1]]"""
         #vals = set(toRem)
         """toRem = [p[0] for p in predecessors[0:1]]
         toRem.append(t[0])
@@ -91,26 +144,27 @@ def extract_event_candidates(degree, graph, initialGraph, nodes):
             dd = graph.get_edge_data(d[0], d[1])
             val['tweets']= val['tweets'].union(set(dd['id']))
 
-        graph.remove_nodes_from(mnodes)
+        graph.remove_edges_from(toRem)
+
+        #display(initialGraph)
 
         toRem = list(set([r[0] for r in toRem]).union(set([r[1] for r in toRem])))
         if len(graph) > 0 and not nx.is_strongly_connected(graph):
-            # log.debug("Graph beccame disconnected beacause of nodes removal")
             components = get_components(graph)
             for c in components:
                 _nodes = c.nodes()
-                if len(_nodes) <= 2:
-
+                if len(_nodes)<= 3:
                     for n in _nodes:
                         for t in toRem:
-                            if initialGraph.has_edge(n, t):
-                                val['tweets']= val['tweets'].union(initialGraph.get_edge_data(n, t)['id'])
-                            if initialGraph.has_edge(t, n):
-                                val['tweets']= val['tweets'].union(initialGraph.get_edge_data(t, n)['id'])
+                            if graph.has_edge(n, t):
+                                val['tweets']= val['tweets'].union(graph.get_edge_data(n, t)['id'])
+                            if graph.has_edge(t, n):
+                                val['tweets']= val['tweets'].union(graph.get_edge_data(t, n)['id'])
                     graph.remove_nodes_from(_nodes)
                     degree = [d for d in degree if d not in _nodes]
         if val['keys']:
             res.append(val)
+        #display(initialGraph)
     print([{'keys': r['keys'], 'tweets' : len(r['tweets'])} for r in res])
     return res
 
@@ -122,32 +176,31 @@ def merge(elem, elem2):
     elem['keyss'] = elem['keyss'].union(elem2['keyss'])
 
 
-def has_edge(node1, node2):
-    initialGraph = nx.DiGraph()
+def has_edge(graph, node1, node2):
     #origin, destination = None, None
-    if initialGraph.has_edge(node1, node2) :
+    if graph.has_edge(node1, node2) :
         origin,destination = node1,node2
-    elif initialGraph.has_edge(node2, node1):
+    elif graph.has_edge(node2, node1):
         origin, destination = node2, node1
     else:
         return False
-    #edges = initialGraph.edges([origin], data='weight')
-    edges = list(initialGraph.edges_iter(nbunch=[origin], data='weight', default=1))
+    edges = graph.edges(nbunch=[origin], data='weight', default=1)
+    edges.sort(key=operator.itemgetter(2), reverse = True)
     return edges[0][0] == destination or edges[0][1] == destination
 
 
-def merge_duplicate_events(res):
+def merge_duplicate_events(graph, res):
     hasMerged = True
     log.debug("Merge duplicated events...")
     round = 1
-    res =  [r for r in res if len(r['tweets']) >= 5]
+    #res =  [r for r in res if len(r['tweets']) >= 20]
     #res = sorted(res, key=lambda k: len(k['tweets']), reverse=True)
 
     while hasMerged:
         hasMerged = False
-        res = [elem for elem in res if 'ignore' not in elem and len(elem['tweets']) > 0 and len(elem['keys']) >= 1*round]
+        res = [elem for elem in res if 'ignore' not in elem and len(elem['tweets']) > 0 and len(elem['keys']) > 1*round]
         for i, elem in enumerate(res):
-            if 'ignore' in elem or not elem['keys'].intersection(set(nes)):
+            if 'ignore' in elem or not elem['keys'].intersection(set(nes)) or (len(elem['keys']) < 4 and len(elem['keys'].intersection(set(nes))) < 2):
                 print("#1", elem['keys'])
                 elem['ignore'] = True
                 continue
@@ -162,21 +215,21 @@ def merge_duplicate_events(res):
                 elem2['ents'] = elem2['keyss'].intersection(set(nes))
                 common_ents = len(elem2['ents'].intersection(elem['ents']))
                 #common_keys = len(elem2['keyss'].intersection(elem['keyss']))
-                if elem2['keyss'].issubset(elem['keyss']) or elem['keyss'].issubset(elem2['keyss']) or common_ents > 1*round :
+                if elem2['keyss'].issubset(elem['keyss']) or elem['keyss'].issubset(elem2['keyss']) or common_ents > 2*round :
                     merge(elem,elem2)
                     hasMerged = True
                     print("#3", elem2['keys'])
                     continue
                     # break
                 #initialGraph = nx.DiGraph()
-                if initialGraph.has_edge(elem2['center'], elem['center']) or initialGraph.has_edge(elem['center'], elem2['center']):
+                if graph.has_edge(elem2['center'], elem['center']) or graph.has_edge(elem['center'], elem2['center']):
                     merge(elem, elem2)
                     hasMerged = True
                     continue
                 index = 0
                 for _e in elem['keyss']:
                     for _ee in elem2['keyss']:
-                        if has_edge(_e, _ee):
+                        if has_edge(graph,_e, _ee):
                             index+=1
                         if index > 1*round:
                             merge(elem, elem2)
@@ -186,10 +239,12 @@ def merge_duplicate_events(res):
                         break
         round += 1
 
+        hasMerged = round < 2
+
 
     for i, elem in enumerate(res):
         for j in range(i+1, len(res)):
-            if len(elem['tweets'].intersection(res[j])) > 2:
+            if len(elem['tweets'].intersection(res[j])) > 20:
                 print("#5", res[j]['keys'])
                 merge(elem,res[j])
 
@@ -208,12 +263,11 @@ def merge_duplicate_events(res):
                 elem['keyss'] = elem['keyss'].union(s['keys'])
                 break
 
-
-
     return [elem for elem in res if 'ignore' not in elem and len(elem['tweets']) > 0 and len(elem['keys']) >= 1]
 
 def process(opts):
     global initialGraph
+    global  original
     StreamManager.ne = opts.ne
     StreamManager.interval = opts.int
     tmin = opts.tmin
@@ -235,15 +289,16 @@ def process(opts):
         if not group:
             break
         day = group['day']
-        seen = [s for s in seen if day - s['day'] <=2]
+        #seen = [s for s in seen if day - s['day'] <=2]
         log.debug(str(group['day']) + " - " + str(group['interval']))
 
-        nodes = initialGraph.nodes(data=True)
+        """nodes = initialGraph.nodes(data=True)
         for node in nodes:
-            node[1]['iteration'] = 1 if not 'iteration' in node[1] else node[1]['iteration'] + 1
-        #initialGraph.clear()
+            node[1]['iteration'] = 1 if not 'iteration' in node[1] else node[1]['iteration'] + 1"""
+        initialGraph.clear()
         log.debug("Building the graph")
         #build the graph from tweets
+        print(len(group['data']))
         build_graph(initialGraph, group['data'])
         del group
 
@@ -259,30 +314,38 @@ def process(opts):
 
         #initialGraph.remove_nodes_from(nodeg)
 
-        clean(initialGraph, min_weight=min_weight)
-
         _degree = getScore(initialGraph, __nodes, dangling=False)
         _degree = [d for d in _degree if d[1] >= smin]
 
-        ggg = [initialGraph]
+        gg = clean(initialGraph, min_weight=min_weight)
+        """original = nx.stochastic_graph(initialGraph, weight='weight')
+        if not nx.is_strongly_connected(initialGraph):
+            gg = get_components(initialGraph)
+        else:
+            gg =  [initialGraph]"""
+
+
+
+        #display(initialGraph)
+        #ggg = [initialGraph]
         """for g in gg:
             ggg.extend(clean(g, min_weight=0))"""
 
-        for graph in ggg :
+        for graph in gg :
             log.debug("Retrieving nodes")
             nodes = graph.nodes(data=True)
 
             nodes= [n[0] for n in nodes if n[1]['entity']]
-            #degree = [d for d in _degree if d[0] in nodes]
+            degree = [d for d in _degree if d[0] in nodes]
 
             log.debug("Ranking nodes")
-            res = extract_event_candidates(_degree, graph, initialGraph, nodes)
+            res = extract_event_candidates(degree, graph, initialGraph, nodes)
 
             log.debug("Pruning the graph")
-            events = merge_duplicate_events(res)
-
-            log.debug("Pruning detected events")
-
+            events = merge_duplicate_events(graph, res)
+            if not events:
+                log.debug("No event found...")
+                continue
             news = []
             log.debug("Generating Description for {} candidates".format(len(events)))
             for r in events:
@@ -306,13 +369,12 @@ def process(opts):
                 initialGraph.remove_nodes_from(list(r['keyss']))
                 seen.append(r)
 
-            toDelete = []
+            """toDelete = []
             nodes = initialGraph.nodes(data=True)
             for node in nodes:
                 if 'iteration' in node[1] and node[1]['iteration'] > 2:
                     toDelete.append(node[0])
-            initialGraph.remove_nodes_from(toDelete)
-            print("New Events")
+            initialGraph.remove_nodes_from(toDelete)"""
             tt = tabulate(news, headers=["Day", "Description", "Ground Truth", "#tweets", "Keywords"])
             print(tt)
 
@@ -326,11 +388,11 @@ if __name__ == '__main__':
     ##print(TextHelper.stops("go helll fuck this shiet damn it lmfao loll "))
 
     parser = OptionParser('''%prog -o ontology -t type -f force ''')
-    parser.add_option('-n', '--negative', dest='ne', default=50000, type=int)
+    parser.add_option('-n', '--negative', dest='ne', default=10000, type=int)
     parser.add_option('-t', '--tmin', dest='tmin', default=1, type=int)
-    parser.add_option('-w', '--wmin', dest='wmin', default=3, type=int)
+    parser.add_option('-w', '--wmin', dest='wmin', default=2, type=int)
     parser.add_option('-i', '--int', dest='int', default=1, type=int)
-    parser.add_option('-s', '--smin', dest='smin', default=0.00001, type=float)
+    parser.add_option('-s', '--smin', dest='smin', default=1.5, type=float)
     #print(res)
     opts, args = parser.parse_args()
     process(opts)

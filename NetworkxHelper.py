@@ -149,7 +149,7 @@ def clean(G, min_weight=2):
             if data < min_weight:
                 toRem.append((n,nbr))
     G.remove_edges_from(toRem)
-    """gg = []
+    gg = []
     if not nx.is_strongly_connected(G):
         graphs = sorted(nx.strongly_connected_component_subgraphs(G), key=len, reverse=True)
         graphs = [g for g in graphs if nx.number_of_nodes(g) > 3]
@@ -167,7 +167,7 @@ def clean(G, min_weight=2):
         gg.extend(gp)
 
     graphs = [g for g in gg if nx.number_of_nodes(g) > 3]
-    return graphs"""
+    return graphs
 
 def get_components(G):
     components = sorted(nx.strongly_connected_component_subgraphs(G), key = len, reverse = True)
@@ -297,7 +297,7 @@ colors = cycle(['blue', 'green', 'brown', 'black','navy', 'turquoise', 'darkoran
 def display(G, pos=None):
     if not pos:
         pos = createLayout(G)
-    plt.figure(1, figsize=(10, 10))
+    plt.figure(1, figsize=(50, 50))
     if not type(G) is list:
         G = [G]
     # layout graphs with positions using graphviz neato
@@ -305,10 +305,10 @@ def display(G, pos=None):
         g = G[i]
         nx.draw(g,
                 pos,
-                node_size=80,
+                node_size=200,
                 node_color=c,
-                vmin=1.0,
-                vmax=3.0,
+                vmin=10.0,
+                vmax=30.0,
                 with_labels=True
                 )
 

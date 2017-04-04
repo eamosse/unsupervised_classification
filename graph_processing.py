@@ -216,7 +216,7 @@ def merge_duplicate_events(graph, res):
         for i,t in enumerate(toConfirm):
             if not t['ents']:
                 continue
-            if elem['ents'].intersection(t['ents']) >= 1:
+            if len(elem['ents'].intersection(t['ents'])) >= 1:
                 merge(elem, t)
                 toConfirm.pop(i)
                 break

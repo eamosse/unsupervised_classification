@@ -210,6 +210,8 @@ def merge_duplicate_events(graph, res):
     log.debug("Merge duplicated events...")
     round = 1
 
+    print(toConfirm)
+
     for elem in res:
         for i,t in enumerate(toConfirm):
             if elem['ents'].intersection(t['ents']) >= 1:
@@ -264,10 +266,6 @@ def merge_duplicate_events(graph, res):
         round += 1
 
         hasMerged = round < 2
-
-
-
-
 
 
     for elem in res:

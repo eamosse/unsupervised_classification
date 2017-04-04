@@ -377,7 +377,7 @@ def process(opts):
             for r in events:
                 r['day'] = day
                 tweets = list(r['tweets'])
-                if len(r['tweets']) < opts.tmin :
+                if len(r['tweets']) < opts.mtweet :
                     toConfirm.append(r)
                     continue
 
@@ -423,6 +423,7 @@ if __name__ == '__main__':
     parser.add_option('-w', '--wmin', dest='wmin', default=1, type=int)
     parser.add_option('-i', '--int', dest='int', default=1, type=int)
     parser.add_option('-s', '--smin', dest='smin', default=0.5, type=float)
+    parser.add_option('-m', '--mtweet', dest='mtweet', default=10, type=int)
     #print(res)
     opts, args = parser.parse_args()
     process(opts)

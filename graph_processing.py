@@ -242,7 +242,7 @@ def merge_duplicate_events(graph, res):
                 """if graph.has_edge(elem2['center'], elem['center']) or graph.has_edge(elem['center'], elem2['center']):
                     merge(elem, elem2)
                     hasMerged = True
-                    continue"""
+                    continue
                 index = 0
                 for _e in elem['keyss']:
                     for _ee in elem2['keyss']:
@@ -253,7 +253,7 @@ def merge_duplicate_events(graph, res):
                             print("#4", elem2['keys'])
                             hasMerged = True
                     if index > 2*round:
-                        break
+                        break"""
         round += 1
 
         hasMerged = round < 2
@@ -271,7 +271,7 @@ def merge_duplicate_events(graph, res):
             continue
         for s in seen:
             if elem['keys'].issubset(s['keys']) or s['keys'].issubset(elem['keys']) or len(
-                elem['ents'].intersection(s['ents'])) >= 1:
+                elem['ents'].intersection(s['ents'])) > 1:
                 elem['ignore'] = True
                 print("#6", elem['keys'])
                 s['tweets'] = s['tweets'].union(elem['tweets'])

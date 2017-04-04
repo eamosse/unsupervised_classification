@@ -306,8 +306,8 @@ def process(opts):
     global  toConfirm
     collection = col[opts.dataset]
     StreamManager.ne = opts.ne
-    StreamManager.init(opts.ne,collection)
     StreamManager.interval = opts.int
+    StreamManager.init(opts.int,collection)
     tmin = opts.tmin
     min_weight = opts.wmin
     smin = opts.smin
@@ -355,17 +355,10 @@ def process(opts):
         _degree = getScore(initialGraph, __nodes, dangling=False)
         _degree = [d for d in _degree if d[1] >= smin]
 
-        print(_degree)
+        #print(_degree)
 
         gg = clean(initialGraph, min_weight=min_weight)
         display(initialGraph)
-        """original = nx.stochastic_graph(initialGraph, weight='weight')
-        if not nx.is_strongly_connected(initialGraph):
-            gg = get_components(initialGraph)
-        else:
-            gg =  [initialGraph]"""
-
-
 
         #display(initialGraph)
         #ggg = [initialGraph]

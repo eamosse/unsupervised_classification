@@ -11,7 +11,11 @@ current = 0
 ne = 10000
 interval = 1
 
-groups = db.intervales(collection, param="hour", interval=interval)
+groups = []
+
+def init(interval):
+    global  groups
+    groups = db.intervales(collection, param="hour", interval=interval)
 
 
 def dirtyTweets(nb):

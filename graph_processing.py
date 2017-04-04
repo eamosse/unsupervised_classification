@@ -299,6 +299,7 @@ def process(opts):
     global initialGraph
     global  toConfirm
     StreamManager.ne = opts.ne
+    StreamManager.init(opts.ne)
     StreamManager.interval = opts.int
     tmin = opts.tmin
     min_weight = opts.wmin

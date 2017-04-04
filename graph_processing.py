@@ -214,7 +214,10 @@ def merge_duplicate_events(graph, res):
         hasMerged = False
         res = [elem for elem in res if 'ignore' not in elem and len(elem['tweets']) > 0 and len(elem['keys']) > 1*round]
         for i, elem in enumerate(res):
-            if 'ignore' in elem or not elem['keys'].intersection(set(nes)):
+            if 'ignore' in elem:
+                continue
+
+            if (not elem['keys'].intersection(set(nes)) and len(elem['keys']) < 4) or len(elem['keys']) < 3:
                 print("#1", elem['keys'])
                 elem['ignore'] = True
                 continue

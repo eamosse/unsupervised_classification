@@ -372,7 +372,7 @@ def process(opts):
             for r in events:
                 r['day'] = day
                 tweets = list(r['tweets'])
-                if len(r['tweets']) < 5 :
+                if len(r['tweets']) < opts.tmin :
                     continue
                 text = generateDefinition(tweets) #
                 event = AnnotationHelper.groundTruthEvent(collection,tweets)

@@ -12,7 +12,7 @@ log = helper.enableLog()
 
 seen = []
 texts = []
-
+seen_terms = set()
 visited = []
 day = 0
 initialGraph = None
@@ -237,6 +237,9 @@ def merge_duplicate_events(graph, res):
                 elem['ignore'] = True
                 continue
 
+            if len(seen_terms.intersection(elem['keyss'])) > 1:
+                continue
+
             for j in range(i + 1, len(res)):
                 elem2 = res[j]
                 if 'ignore' in elem2 or not elem2['keys']:
@@ -277,6 +280,7 @@ def merge_duplicate_events(graph, res):
         if not elem['keys'] or 'ignore' in elem:
             elem['ignore'] = True
             continue
+
         for s in seen:
             if elem['keys'].issubset(s['keys']) or s['keys'].issubset(elem['keys']) or len(
                 elem['ents'].intersection(s['ents'])) > 1:
@@ -308,6 +312,7 @@ def process(opts):
 
     global seen
     seen = []
+    global seen_terms
     while True:
         global  day
         group = StreamManager.nextBatch()
@@ -397,7 +402,7 @@ def process(opts):
                     news.append(
                         [day, text, "-1", len(r['tweets']), r['keyss']])
                     gts.append(['-1'])
-
+                seen_terms = seen_terms.union(r['keyss'])
                 #initialGraph.remove_nodes_from(list(r['keyss']))
                 seen.append(r)
 

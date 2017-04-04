@@ -315,7 +315,7 @@ def process(opts):
 
     initialGraph = nx.DiGraph()
 
-    myfile=open('results_{}_{}_{}.csv'.format(tmin, min_weight,smin), 'w')
+    myfile=open('results_{}_{}.csv'.format(collection,smin), 'w')
     wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
     wr.writerow(["GT", "#tweets", "Detected"])
 

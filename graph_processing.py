@@ -16,6 +16,7 @@ texts = []
 visited = []
 day = 0
 initialGraph = None
+toConfirm = []
 
 nes = []
 def build_graph(G, data):
@@ -205,11 +206,17 @@ def has_edge(graph, node1, node2):
 
 def merge_duplicate_events(graph, res):
     hasMerged = True
+    global toConfirm
     log.debug("Merge duplicated events...")
     round = 1
-    #res =  [r for r in res if len(r['tweets']) >= 20]
-    #res = sorted(res, key=lambda k: len(k['tweets']), reverse=True)
 
+    for elem in res:
+        for i,t in enumerate(toConfirm):
+            if elem['ents'].intersection(t['ents']) >= 1:
+                merge(elem, t)
+                toConfirm.pop(i)
+                break
+    toConfirm = [t for t in toConfirm if day - t['day'] < 2]
     while hasMerged:
         hasMerged = False
         res = [elem for elem in res if 'ignore' not in elem and len(elem['tweets']) > 0 and len(elem['keys']) > 1*round]
@@ -259,11 +266,9 @@ def merge_duplicate_events(graph, res):
         hasMerged = round < 2
 
 
-    for i, elem in enumerate(res):
-        for j in range(i+1, len(res)):
-            if len(elem['tweets'].intersection(res[j])) > 20:
-                print("#5", res[j]['keys'])
-                merge(elem,res[j])
+
+
+
 
     for elem in res:
         if not elem['keys'] or 'ignore' in elem:
@@ -284,7 +289,7 @@ def merge_duplicate_events(graph, res):
 
 def process(opts):
     global initialGraph
-    global  original
+    global  toConfirm
     StreamManager.ne = opts.ne
     StreamManager.interval = opts.int
     tmin = opts.tmin
@@ -373,7 +378,9 @@ def process(opts):
                 r['day'] = day
                 tweets = list(r['tweets'])
                 if len(r['tweets']) < opts.tmin :
+                    toConfirm.append(r)
                     continue
+
                 text = generateDefinition(tweets) #
                 event = AnnotationHelper.groundTruthEvent(collection,tweets)
                 if event :

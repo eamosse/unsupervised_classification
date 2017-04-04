@@ -339,9 +339,6 @@ def process(opts):
         #build the graph from tweets
         build_graph(initialGraph, group['data'])
         del group
-        #display(initialGraph)
-
-
 
         #Rename similar nodes
         #log.debug("Merging nodes")
@@ -358,8 +355,10 @@ def process(opts):
         _degree = getScore(initialGraph, __nodes, dangling=False)
         _degree = [d for d in _degree if d[1] >= smin]
 
+        print(_degree)
+
         gg = clean(initialGraph, min_weight=min_weight)
-        #display(initialGraph)
+        display(initialGraph)
         """original = nx.stochastic_graph(initialGraph, weight='weight')
         if not nx.is_strongly_connected(initialGraph):
             gg = get_components(initialGraph)

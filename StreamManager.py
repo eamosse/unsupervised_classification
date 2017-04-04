@@ -41,6 +41,7 @@ def nextBatch():
             #non_events = dirtyTweets(ne)
             data += dirtyTweets(ne)
         group['data'] = data
+        print(len(group['data']))
         return group
     return None
 

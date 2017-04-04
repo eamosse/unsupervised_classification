@@ -39,7 +39,7 @@ def statCategory():
 
 def evaluation():
 
-    scores = ['0.0001','0.0005']
+    scores = ['0.5']
     results = []
     categories = []
     headers = [['_']]
@@ -48,7 +48,7 @@ def evaluation():
         gt, predicted, correct = 506, 0, 0
         headers[0].append("alpha={}".format(score))
         headers[0].append('')
-        with open("results_1_2_{}.csv".format(score), encoding="utf8") as csvfile:
+        with open("results_1_1_{}.csv".format(score), encoding="utf8") as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             index = 0
 

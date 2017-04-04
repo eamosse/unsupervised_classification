@@ -20,7 +20,7 @@ initialGraph = None
 nes = []
 def build_graph(G, data):
     for t in data:
-        if not 'id' in t:
+        if not 'id' in t or not t['annotations']:
             continue
 
         """if not t['id'] in visited:
@@ -38,9 +38,9 @@ def build_graph(G, data):
 
         ann = TextHelper.extract_entity_context(t)
         labels = [a['label'] for a in ann if 'label' in a]
-
+        """if not ann:
+            print("ignoring ", t['id'], len(t['annotations']))"""
         for a in ann:
-
             if 'type' in a and a['label'].lower() not in nes and ('location' in a['type'] or 'person' in a['type'] or 'organisation' in a['type']):
                 nes.append(a['label'].lower())
 
@@ -72,31 +72,41 @@ def extract_event_candidates(degree, graph, initialGraph, nodes):
         predecessors.sort(key=operator.itemgetter(2),reverse=True)  #extractKeyphrases() = itemgetter.ge
         successors.sort(key=operator.itemgetter(2),reverse=True)  #extractKeyphrases() = itemgetter.ge
 
-        index = 0
         toRem = set()
+        print(t, len(predecessors), len(successors))
         for p in predecessors:
-            if index == 0:
-                toRem.add(p[0:2])
+            toRem.add(p[0:2])
             for n in graph.neighbors(p[0]):
-                if has_edge(graph, n,t) or graph.neighbors(n) == 1:
+                if graph.neighbors(n) == 1:
                     toRem.add((n, p[0]) if graph.has_edge(n,p[0]) else (p[0],n))
+                for path in nx.all_simple_paths(graph,n, t, cutoff=4):
+                    if len(path) <=2:
+                        for d in ngrams(path, 2):
+                            toRem.add(d)
 
-            index +=1
+                for path in nx.all_simple_paths(graph, t, n,cutoff=4):
+                    if len(path) <= 2:
+                        print(path)
+                        for d in ngrams(path, 2):
+                            toRem.add(d)
+
             #break
 
         index = 0
         for p in successors:
-            if index == 0:
-                toRem.add(p[0:2])
             for n in graph.neighbors(p[1]):
-                if has_edge(graph, n,t) or graph.neighbors(n) == 1:
+                if graph.neighbors(n) == 1:
                     toRem.add((n, p[1]) if graph.has_edge(n, p[1]) else (p[1], n))
+                for path in nx.all_simple_paths(graph, n, t,cutoff=4):
+                    if len(path) <= 2:
+                        for d in ngrams(path, 2):
+                            toRem.add(d)
 
-            index+=1
-            #break
-
+                for path in nx.all_simple_paths(graph, t, n,cutoff=4):
+                    if len(path) <= 2:
+                        for d in ngrams(path, 2):
+                            toRem.add(d)
         vals = [l[0] for l in toRem] + [l[1] for l in toRem]
-
         """for p in graph.predecessors(t):
             toRem.add((p,t))
             for n in graph.neighbors(p):
@@ -144,7 +154,7 @@ def extract_event_candidates(degree, graph, initialGraph, nodes):
             dd = graph.get_edge_data(d[0], d[1])
             val['tweets']= val['tweets'].union(set(dd['id']))
 
-        graph.remove_edges_from(toRem)
+        #graph.remove_edges_from(toRem)
 
         #display(initialGraph)
 
@@ -153,7 +163,7 @@ def extract_event_candidates(degree, graph, initialGraph, nodes):
             components = get_components(graph)
             for c in components:
                 _nodes = c.nodes()
-                if len(_nodes)<= 3:
+                if len(_nodes)<= 1:
                     for n in _nodes:
                         for t in toRem:
                             if graph.has_edge(n, t):
@@ -200,7 +210,7 @@ def merge_duplicate_events(graph, res):
         hasMerged = False
         res = [elem for elem in res if 'ignore' not in elem and len(elem['tweets']) > 0 and len(elem['keys']) > 1*round]
         for i, elem in enumerate(res):
-            if 'ignore' in elem or not elem['keys'].intersection(set(nes)) or (len(elem['keys']) < 4 and len(elem['keys'].intersection(set(nes))) < 2):
+            if 'ignore' in elem or not elem['keys'].intersection(set(nes)):
                 print("#1", elem['keys'])
                 elem['ignore'] = True
                 continue
@@ -222,20 +232,20 @@ def merge_duplicate_events(graph, res):
                     continue
                     # break
                 #initialGraph = nx.DiGraph()
-                if graph.has_edge(elem2['center'], elem['center']) or graph.has_edge(elem['center'], elem2['center']):
+                """if graph.has_edge(elem2['center'], elem['center']) or graph.has_edge(elem['center'], elem2['center']):
                     merge(elem, elem2)
                     hasMerged = True
-                    continue
+                    continue"""
                 index = 0
                 for _e in elem['keyss']:
                     for _ee in elem2['keyss']:
                         if has_edge(graph,_e, _ee):
                             index+=1
-                        if index > 1*round:
+                        if index > 2*round:
                             merge(elem, elem2)
                             print("#4", elem2['keys'])
                             hasMerged = True
-                    if index > 1:
+                    if index > 2*round:
                         break
         round += 1
 
@@ -301,6 +311,9 @@ def process(opts):
         print(len(group['data']))
         build_graph(initialGraph, group['data'])
         del group
+        #display(initialGraph)
+
+
 
         #Rename similar nodes
         #log.debug("Merging nodes")
@@ -318,6 +331,7 @@ def process(opts):
         _degree = [d for d in _degree if d[1] >= smin]
 
         gg = clean(initialGraph, min_weight=min_weight)
+        #display(initialGraph)
         """original = nx.stochastic_graph(initialGraph, weight='weight')
         if not nx.is_strongly_connected(initialGraph):
             gg = get_components(initialGraph)
@@ -351,22 +365,23 @@ def process(opts):
             for r in events:
                 r['day'] = day
                 tweets = list(r['tweets'])
-                """if len(r['tweets']) < 10 :
-                    continue"""
+                if len(r['tweets']) < 5 :
+                    continue
                 text = generateDefinition(tweets) #
                 event = AnnotationHelper.groundTruthEvent(collection,tweets)
-                if event and len(event) == 1:
-                    news.append([day, text, event[0], len(r['tweets']), r['keyss']])
-                    for g in gts:
-                        if int(g[0]) == int(event[0]):
-                            g.append(event[0])
-                            break
+                if event :
+                    for e in event:
+                        news.append([day, text, e['id'], len(e['tweets']), r['keyss']])
+                        for g in gts:
+                            if int(g[0]) == int(e['id']):
+                                g.append(e)
+                                break
                 else:
                     news.append(
                         [day, text, "-1", len(r['tweets']), r['keyss']])
                     gts.append(['-1'])
 
-                initialGraph.remove_nodes_from(list(r['keyss']))
+                #initialGraph.remove_nodes_from(list(r['keyss']))
                 seen.append(r)
 
             """toDelete = []
@@ -377,6 +392,7 @@ def process(opts):
             initialGraph.remove_nodes_from(toDelete)"""
             tt = tabulate(news, headers=["Day", "Description", "Ground Truth", "#tweets", "Keywords"])
             print(tt)
+            #display(initialGraph)
 
     for gt in gts:
         wr.writerow(gt)
@@ -388,11 +404,11 @@ if __name__ == '__main__':
     ##print(TextHelper.stops("go helll fuck this shiet damn it lmfao loll "))
 
     parser = OptionParser('''%prog -o ontology -t type -f force ''')
-    parser.add_option('-n', '--negative', dest='ne', default=10000, type=int)
+    parser.add_option('-n', '--negative', dest='ne', default=1, type=int)
     parser.add_option('-t', '--tmin', dest='tmin', default=1, type=int)
-    parser.add_option('-w', '--wmin', dest='wmin', default=2, type=int)
+    parser.add_option('-w', '--wmin', dest='wmin', default=1, type=int)
     parser.add_option('-i', '--int', dest='int', default=1, type=int)
-    parser.add_option('-s', '--smin', dest='smin', default=1.5, type=float)
+    parser.add_option('-s', '--smin', dest='smin', default=0.5, type=float)
     #print(res)
     opts, args = parser.parse_args()
     process(opts)

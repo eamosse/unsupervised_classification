@@ -64,16 +64,10 @@ def reconciliate():
     db.insert("events", tweets)
 
 def update():
-    _from, limit = 0,10000
-    while True:
-        tweets  = db.find("events_annotated_purge", skip=_from, limit=limit)
-        if not tweets:
-            break
-        for t in tweets:
-            del t['_id']
-        res = db.insert("all_tweets", tweets)
-        print("Add", " : ", len(tweets))
-        _from +=limit
+    tweets  = db.find("fsd_tweets")
+    for tweet in tweets:
+        db.update('fsd_tweets',condition={'_id':tweet['_id']}, value={'id':tweet['tweet_id']})
+
 
 def saveRelevent(file):
     with open(file, encoding="utf8") as csvfile:

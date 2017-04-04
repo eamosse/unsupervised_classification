@@ -57,8 +57,8 @@ def dirtyTweets(nb, min=0, shuffle=3):
         random.shuffle(non_events)
     return non_events[min:nb]
 
-def generateDefinition(ids):
-    tweets = db.find(collection="all_tweets", query={'id':{'$in':ids}})
+def generateDefinition(collection,ids):
+    tweets = db.find(collection=collection, query={'id':{'$in':ids}})
     tweets = sorted(tweets, key=lambda k: len(k['text']), reverse=True)
     return tweets[0]['text']
     #texts = ' '.join([t['text'] for t in tweets[0:50]])

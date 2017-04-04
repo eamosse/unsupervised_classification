@@ -7,7 +7,15 @@ import utils
 from optparse import OptionParser
 from Score import *
 from textrank import  *
-collection = "events_annotated_purge"
+collection = "fsd_tweets"
+
+col = {
+    'fsd' : 'fsd_tweets',
+    'event_2012' :'events_annotated',
+    'event_purge' :'events_annotated_purge'
+}
+
+
 log = helper.enableLog()
 
 seen = []
@@ -78,7 +86,6 @@ def extract_event_candidates(degree, graph, initialGraph, nodes):
         successors.sort(key=operator.itemgetter(2),reverse=True)  #extractKeyphrases() = itemgetter.ge
 
         toRem = set()
-        print(t, len(predecessors), len(successors))
         for p in predecessors:
             toRem.add(p[0:2])
             for n in graph.neighbors(p[0]):
@@ -210,7 +217,6 @@ def merge_duplicate_events(graph, res):
     log.debug("Merge duplicated events...")
     round = 1
 
-
     for elem in res:
         elem['ents'] = elem['keyss'].intersection(set(nes))
         for i,t in enumerate(toConfirm):
@@ -232,12 +238,12 @@ def merge_duplicate_events(graph, res):
 
             elem['ents'] = elem['keyss'].intersection(set(nes))
 
-            if not elem['keys'].intersection(set(nes)):
+            if not elem['ents']:
                 print("#1", elem['keys'])
                 elem['ignore'] = True
                 continue
 
-            if len(seen_terms.intersection(elem['keyss'])) > 1:
+            if len(seen_terms.intersection(elem['ents'])) >= 1:
                 elem['ignore'] = True
                 continue
 
@@ -298,8 +304,9 @@ def merge_duplicate_events(graph, res):
 def process(opts):
     global initialGraph
     global  toConfirm
+    collection = col[opts.dataset]
     StreamManager.ne = opts.ne
-    StreamManager.init(opts.ne)
+    StreamManager.init(opts.ne,collection)
     StreamManager.interval = opts.int
     tmin = opts.tmin
     min_weight = opts.wmin
@@ -330,7 +337,6 @@ def process(opts):
         initialGraph.clear()
         log.debug("Building the graph")
         #build the graph from tweets
-        print(len(group['data']))
         build_graph(initialGraph, group['data'])
         del group
         #display(initialGraph)
@@ -388,10 +394,11 @@ def process(opts):
                 r['day'] = day
                 tweets = list(r['tweets'])
                 if len(r['tweets']) < opts.mtweet :
+                    print("to confirm", r)
                     toConfirm.append(r)
                     continue
-
-                text = generateDefinition(tweets) #
+                #"all_tweets"
+                text = generateDefinition("all_tweets",tweets) #
                 event = AnnotationHelper.groundTruthEvent(collection,tweets)
                 if event :
                     for e in event:
@@ -430,10 +437,11 @@ if __name__ == '__main__':
     parser = OptionParser('''%prog -o ontology -t type -f force ''')
     parser.add_option('-n', '--negative', dest='ne', default=1, type=int)
     parser.add_option('-t', '--tmin', dest='tmin', default=1, type=int)
-    parser.add_option('-w', '--wmin', dest='wmin', default=1, type=int)
-    parser.add_option('-i', '--int', dest='int', default=1, type=int)
-    parser.add_option('-s', '--smin', dest='smin', default=0.5, type=float)
+    parser.add_option('-w', '--wmin', dest='wmin', default=0, type=int)
+    parser.add_option('-i', '--int', dest='int', default=24, type=int)
+    parser.add_option('-s', '--smin', dest='smin', default=0.005, type=float)
     parser.add_option('-m', '--mtweet', dest='mtweet', default=10, type=int)
+    parser.add_option('-d', '--dataset', dest='dataset', default='fsd', type=str)
     #print(res)
     opts, args = parser.parse_args()
     process(opts)

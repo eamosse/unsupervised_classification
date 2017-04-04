@@ -3,7 +3,7 @@ import csv
 import random
 db.connect("tweets_dataset")
 
-collection = "events_annotated_purge"
+collection = "fsd_tweets"
 
 dirty = []
 max = 1233200
@@ -13,7 +13,9 @@ interval = 1
 
 groups = []
 
-def init(interval):
+def init(interval,col):
+    global  collection
+    collection = col
     global  groups
     groups = db.intervales(collection, param="hour", interval=interval)
 
@@ -34,8 +36,10 @@ def nextBatch():
     if groups:
         group = groups.pop(0)
         tweets = db.find(collection, query={"id": {"$in": group['data']}})
-        non_events = dirtyTweets(ne)
-        data = tweets + non_events
+        data = tweets
+        if ne > 1 :
+            #non_events = dirtyTweets(ne)
+            data += dirtyTweets(ne)
         group['data'] = data
         return group
     return None

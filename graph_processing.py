@@ -212,12 +212,15 @@ def merge_duplicate_events(graph, res):
 
 
     for elem in res:
+        elem['ents'] = elem['keyss'].intersection(set(nes))
         for i,t in enumerate(toConfirm):
             if not t['ents']:
                 continue
             if elem['ents'].intersection(t['ents']) >= 1:
                 merge(elem, t)
                 toConfirm.pop(i)
+                break
+            if not toConfirm:
                 break
     toConfirm = [t for t in toConfirm if day - t['day'] < 2]
     while hasMerged:
@@ -227,12 +230,13 @@ def merge_duplicate_events(graph, res):
             if 'ignore' in elem:
                 continue
 
+            elem['ents'] = elem['keyss'].intersection(set(nes))
+
             if (not elem['keys'].intersection(set(nes)) and len(elem['keys']) < 4) or len(elem['keys']) < 3:
                 print("#1", elem['keys'])
                 elem['ignore'] = True
                 continue
 
-            elem['ents'] = elem['keyss'].intersection(set(nes))
             for j in range(i + 1, len(res)):
                 elem2 = res[j]
                 if 'ignore' in elem2 or not elem2['keys']:

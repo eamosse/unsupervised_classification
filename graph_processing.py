@@ -238,6 +238,7 @@ def merge_duplicate_events(graph, res):
                 continue
 
             if len(seen_terms.intersection(elem['keyss'])) > 1:
+                elem['ignore'] = True
                 continue
 
             for j in range(i + 1, len(res)):

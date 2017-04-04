@@ -358,7 +358,7 @@ def process(opts):
         #print(_degree)
 
         gg = clean(initialGraph, min_weight=min_weight)
-        display(initialGraph)
+        # display(initialGraph)
 
         #display(initialGraph)
         #ggg = [initialGraph]

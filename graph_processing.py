@@ -19,8 +19,10 @@ initialGraph = None
 
 nes = []
 def build_graph(G, data):
+    ignored = 0
     for t in data:
         if not 'id' in t or not t['annotations']:
+            ignored+=1
             continue
 
         """if not t['id'] in visited:
@@ -38,8 +40,8 @@ def build_graph(G, data):
 
         ann = TextHelper.extract_entity_context(t)
         labels = [a['label'] for a in ann if 'label' in a]
-        """if not ann:
-            print("ignoring ", t['id'], len(t['annotations']))"""
+        if not ann:
+            ignored += 1
         for a in ann:
             if 'type' in a and a['label'].lower() not in nes and ('location' in a['type'] or 'person' in a['type'] or 'organisation' in a['type']):
                 nes.append(a['label'].lower())
@@ -52,6 +54,8 @@ def build_graph(G, data):
                     parts = ngrams(l[0].split() + l[1].split(), 2)
                     for p in parts:
                         addEdge(G, p[0], p[1], t['id'], labels)
+
+    print("Ignored {} out of {}".format(len(data), ignored))
 
 def extract_event_candidates(degree, graph, initialGraph, nodes):
     log.debug("Extracting events candidate...")

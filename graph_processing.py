@@ -232,7 +232,7 @@ def merge_duplicate_events(graph, res):
 
             elem['ents'] = elem['keyss'].intersection(set(nes))
 
-            if (not elem['keys'].intersection(set(nes)) and len(elem['keys']) < 4) or len(elem['keys']) < 3:
+            if not elem['keys'].intersection(set(nes)):
                 print("#1", elem['keys'])
                 elem['ignore'] = True
                 continue

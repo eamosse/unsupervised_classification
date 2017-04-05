@@ -41,7 +41,6 @@ def nextBatch():
             #non_events = dirtyTweets(ne)
             data += dirtyTweets(ne)
         group['data'] = data
-        print(len(group['data']))
         return group
     return None
 
@@ -59,8 +58,11 @@ def gtEvents(limit=1):
     return res
 
 
-def perCategory(corrects):
+def perCategory(collect, corrects):
+    global collection
+    collection = collect
     corrects = set(corrects)
+    print(corrects)
     pipeline = [
         {"$group": {"_id": {"category": "$categorie_text"},
                     "data": {"$addToSet": {'event_id': '$event_id'}}}}]
@@ -74,7 +76,7 @@ def perCategory(corrects):
     for key in keys:
         correct, total = len(res[key].intersection(corrects)), len(res[key])
         recall = "%.3f" % (correct/total) if total > 0 else 0
-        d = [key,"E: {} \linebreak[1] R: {}".format(correct,recall) ]
+        d = [key,"E: {}/{} \linebreak[1] R: {}".format(correct,total,recall) ]
         final.append(d)
     return final
 

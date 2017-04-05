@@ -8,12 +8,20 @@ from optparse import OptionParser
 from Score import *
 from textrank import  *
 collection = "fsd_tweets"
-
+collectionDef = "all_tweets"
+overall = []
 col = {
     'fsd' : 'fsd_tweets',
     'event_2012' :'events_annotated',
     'event_purge' :'events_annotated_purge'
 }
+
+coldef = {
+    'fsd' : 'fsd_tweets',
+    'event_2012' :'all_tweets',
+    'event_purge' :'all_tweets'
+}
+
 
 
 log = helper.enableLog()
@@ -34,19 +42,6 @@ def build_graph(G, data):
             ignored+=1
             continue
 
-        """if not t['id'] in visited:
-            visited.append(t['id'])
-        else:
-            continue
-
-        if not t['text'] in texts:
-            texts.append(t['text'])
-        else:
-            continue
-
-        if len(TextHelper.tokenize(t['text'])) < 2:
-            continue"""
-
         ann = TextHelper.extract_entity_context(t)
         labels = [a['label'] for a in ann if 'label' in a]
         if not ann:
@@ -64,8 +59,6 @@ def build_graph(G, data):
                     for p in parts:
                         addEdge(G, p[0], p[1], t['id'], labels)
 
-    print("Ignored {} out of {}".format(len(data), ignored))
-
 def extract_event_candidates(degree, graph, initialGraph, nodes):
     log.debug("Extracting events candidate...")
     res = []
@@ -73,9 +66,6 @@ def extract_event_candidates(degree, graph, initialGraph, nodes):
     #deg = degree[:]
     while degree:
         t = degree.pop(0)
-        #print(t)
-        toRem = set()
-
         predecessors = [(p, t, graph.get_edge_data(p, t)['weight']) for p in graph.predecessors(t)]
         successors = [(t, s, graph.get_edge_data(t, s)['weight']) for s in graph.successors(t)]
 
@@ -98,7 +88,6 @@ def extract_event_candidates(degree, graph, initialGraph, nodes):
 
                 for path in nx.all_simple_paths(graph, t, n,cutoff=4):
                     if len(path) <= 2:
-                        print(path)
                         for d in ngrams(path, 2):
                             toRem.add(d)
 
@@ -186,8 +175,6 @@ def extract_event_candidates(degree, graph, initialGraph, nodes):
                     degree = [d for d in degree if d not in _nodes]
         if val['keys']:
             res.append(val)
-        #display(initialGraph)
-    print([{'keys': r['keys'], 'tweets' : len(r['tweets'])} for r in res])
     return res
 
 def merge(elem, elem2):
@@ -229,58 +216,35 @@ def merge_duplicate_events(graph, res):
             if not toConfirm:
                 break
     toConfirm = [t for t in toConfirm if day - t['day'] < 2]
-    while hasMerged:
-        hasMerged = False
-        res = [elem for elem in res if 'ignore' not in elem and len(elem['tweets']) > 0 and len(elem['keys']) > 1*round]
-        for i, elem in enumerate(res):
-            if 'ignore' in elem:
+
+    res = [elem for elem in res if 'ignore' not in elem and len(elem['tweets']) > 0 and len(elem['keys']) > 1*round]
+    for i, elem in enumerate(res):
+        if 'ignore' in elem:
+            continue
+
+        elem['ents'] = elem['keyss'].intersection(set(nes))
+
+        if not elem['ents']:
+            log.debug("#1" + str(elem['keys']))
+            elem['ignore'] = True
+            continue
+
+        if len(seen_terms.intersection(elem['ents'])) >= 2:
+            elem['ignore'] = True
+            continue
+
+        for j in range(i + 1, len(res)):
+            elem2 = res[j]
+            if 'ignore' in elem2 or not elem2['keys']:
+                elem2['ignore'] = True
+                log.debug("#2" + str(elem2['keys']))
                 continue
-
-            elem['ents'] = elem['keyss'].intersection(set(nes))
-
-            if not elem['ents']:
-                print("#1", elem['keys'])
-                elem['ignore'] = True
+            elem2['ents'] = elem2['keyss'].intersection(set(nes))
+            common_ents = len(elem2['ents'].intersection(elem['ents']))
+            if elem2['keys'].issubset(elem['keys']) or elem['keys'].issubset(elem2['keys']) or common_ents >= 1*round :
+                merge(elem,elem2)
+                log.debug("#3" + str(elem2['keys']))
                 continue
-
-            if len(seen_terms.intersection(elem['ents'])) >= 1:
-                elem['ignore'] = True
-                continue
-
-            for j in range(i + 1, len(res)):
-                elem2 = res[j]
-                if 'ignore' in elem2 or not elem2['keys']:
-                    elem2['ignore'] = True
-                    print("#2", elem2['keys'])
-                    continue
-                elem2['ents'] = elem2['keyss'].intersection(set(nes))
-                common_ents = len(elem2['ents'].intersection(elem['ents']))
-                #common_keys = len(elem2['keyss'].intersection(elem['keyss']))
-                if elem2['keyss'].issubset(elem['keyss']) or elem['keyss'].issubset(elem2['keyss']) or common_ents > 2*round :
-                    merge(elem,elem2)
-                    hasMerged = True
-                    print("#3", elem2['keys'])
-                    continue
-                    # break
-                #initialGraph = nx.DiGraph()
-                """if graph.has_edge(elem2['center'], elem['center']) or graph.has_edge(elem['center'], elem2['center']):
-                    merge(elem, elem2)
-                    hasMerged = True
-                    continue
-                index = 0
-                for _e in elem['keyss']:
-                    for _ee in elem2['keyss']:
-                        if has_edge(graph,_e, _ee):
-                            index+=1
-                        if index > 2*round:
-                            merge(elem, elem2)
-                            print("#4", elem2['keys'])
-                            hasMerged = True
-                    if index > 2*round:
-                        break"""
-        round += 1
-
-        hasMerged = round < 2
 
 
     for elem in res:
@@ -292,7 +256,7 @@ def merge_duplicate_events(graph, res):
             if elem['keys'].issubset(s['keys']) or s['keys'].issubset(elem['keys']) or len(
                 elem['ents'].intersection(s['ents'])) > 1:
                 elem['ignore'] = True
-                print("#6", elem['keys'])
+                log.debug("#6" + str(elem['keys']))
                 s['tweets'] = s['tweets'].union(elem['tweets'])
                 if not 'keyss' in elem:
                     elem['keyss'] = set(list(elem['keys'])[:])
@@ -305,6 +269,7 @@ def process(opts):
     global initialGraph
     global  toConfirm
     collection = col[opts.dataset]
+    collectionDef = coldef[opts.dataset]
     StreamManager.ne = opts.ne
     StreamManager.interval = opts.int
     StreamManager.init(opts.int,collection)
@@ -340,30 +305,13 @@ def process(opts):
         build_graph(initialGraph, group['data'])
         del group
 
-        #Rename similar nodes
-        #log.debug("Merging nodes")
-
         log.debug("Cleaning the graph")
         __nodes = degrees(initialGraph, nbunch=initialGraph.nodes())
         __nodes = [d if d[1] > 0 else (d[0], 1) for d in __nodes]
 
-
-        #nodeg = [d[0] for d in _degree if d[1] < smin]
-
-        #initialGraph.remove_nodes_from(nodeg)
-
         _degree = getScore(initialGraph, __nodes, dangling=False)
         _degree = [d for d in _degree if d[1] >= smin]
-
-        #print(_degree)
-
         gg = clean(initialGraph, min_weight=min_weight)
-        # display(initialGraph)
-
-        #display(initialGraph)
-        #ggg = [initialGraph]
-        """for g in gg:
-            ggg.extend(clean(g, min_weight=0))"""
 
         for graph in gg :
             log.debug("Retrieving nodes")
@@ -386,33 +334,28 @@ def process(opts):
                 r['day'] = day
                 tweets = list(r['tweets'])
                 if len(r['tweets']) < opts.mtweet :
-                    print("to confirm", r)
                     toConfirm.append(r)
                     continue
-                #"all_tweets"
-                text = generateDefinition("all_tweets",tweets) #
+
                 event = AnnotationHelper.groundTruthEvent(collection,tweets)
                 if event :
                     for e in event:
+                        text = generateDefinition(collectionDef, e['tweets'])  #
                         news.append([day, text, e['id'], len(e['tweets']), r['keyss']])
+
                         for g in gts:
                             if int(g[0]) == int(e['id']):
                                 g.append(e)
                                 break
                 else:
+                    text = generateDefinition(collectionDef, tweets)  #
                     news.append(
                         [day, text, "-1", len(r['tweets']), r['keyss']])
                     gts.append(['-1'])
                 seen_terms = seen_terms.union(r['keyss'])
-                #initialGraph.remove_nodes_from(list(r['keyss']))
                 seen.append(r)
 
-            """toDelete = []
-            nodes = initialGraph.nodes(data=True)
-            for node in nodes:
-                if 'iteration' in node[1] and node[1]['iteration'] > 2:
-                    toDelete.append(node[0])
-            initialGraph.remove_nodes_from(toDelete)"""
+            overall.extend(news)
             tt = tabulate(news, headers=["Day", "Description", "Ground Truth", "#tweets", "Keywords"])
             print(tt)
             #display(initialGraph)
@@ -420,8 +363,18 @@ def process(opts):
     for gt in gts:
         wr.writerow(gt)
 
-    print('Done')
-
+    print("=====================Overall Evaluation=====================")
+    oo = []
+    for i, o in enumerate(overall):
+        print(o)
+        if len(o) > 4:
+            continue
+        for j in range(i + 1, len(overall)):
+            if o[2] == overall[j][2]:
+                overall[j].append('ignore')
+        oo.append(o)
+    tt = tabulate(oo, headers=["Day", "Description", "Ground Truth", "#tweets", "Keywords"])
+    print(tt)
 
 if __name__ == '__main__':
     ##print(TextHelper.stops("go helll fuck this shiet damn it lmfao loll "))
@@ -431,8 +384,8 @@ if __name__ == '__main__':
     parser.add_option('-t', '--tmin', dest='tmin', default=1, type=int)
     parser.add_option('-w', '--wmin', dest='wmin', default=0, type=int)
     parser.add_option('-i', '--int', dest='int', default=24, type=int)
-    parser.add_option('-s', '--smin', dest='smin', default=0.005, type=float)
-    parser.add_option('-m', '--mtweet', dest='mtweet', default=10, type=int)
+    parser.add_option('-s', '--smin', dest='smin', default=0.5, type=float)
+    parser.add_option('-m', '--mtweet', dest='mtweet', default=5, type=int)
     parser.add_option('-d', '--dataset', dest='dataset', default='fsd', type=str)
     #print(res)
     opts, args = parser.parse_args()

@@ -4,7 +4,7 @@ from tabulate import tabulate
 from helper import AnnotationHelper, TextHelper
 from StreamManager import  *
 db.connect("tweets_dataset")
-collection= "events_annotated"
+collection= "events_annotated_purge"
 """
 Do not considere events with less than limit tweets
 """
@@ -15,7 +15,7 @@ def statCategory():
     print(rrr)
     pipeline = [
         {"$group": {"_id": "$categorie_text", "count": {"$sum":1}}}]
-    res = db.aggregate("annotation_unsupervised", pipeline)
+    res = db.aggregate(collection, pipeline)
     res = {r['_id']:{'tweets' :r['count']} for r in res}
 
     pipeline = [
@@ -39,7 +39,7 @@ def statCategory():
 
 def evaluation():
 
-    scores = ['0.2','0.1']
+    scores = ['0.2']
     results = []
     categories = []
     headers = [['_']]
@@ -48,7 +48,7 @@ def evaluation():
         gt, predicted, correct = 506, 0, 0
         headers[0].append("alpha={}".format(score))
         headers[0].append('')
-        with open("results_1_1_{}.csv".format(score), encoding="utf8") as csvfile:
+        with open("results_{}_{}.csv".format(collection,score), encoding="utf8") as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             index = 0
 
@@ -67,7 +67,7 @@ def evaluation():
         recall = correct/gt
         fscore = 2*precision*recall/(precision+recall)
         results.append(["alpha={}".format(score), gt, predicted, correct,"%.3f" %precision,"%.3f" %recall,"%.3f" %fscore])
-        cat = perCategory(list(corrects))
+        cat = perCategory(collection,list(corrects))
         if not categories:
             categories.extend(cat)
         else:
